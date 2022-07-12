@@ -1,0 +1,59 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - edited
+      - labeled
+      - unlabeled
+      - synchronize
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'draft') }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2.2.2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install poetry
+      run: make download-poetry
+
+    - name: Set up cache
+      uses: actions/cache@v2.1.5
+      with:
+        path: ~/.cache/pypoetry/virtualenvs
+        key: venv-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
+
+    - name: Set Poetry Path
+      run: |
+        echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        poetry run pip install --upgrade pip
+        poetry install
+
+    - name: Run safety checks
+      run: |
+        STRICT=1 make check-safety
+
+    - name: Run style checks
+      run: |
+        STRICT=1 make check-style
+
+    - name: Run tests
+      run: |
+        make test
