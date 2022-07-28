@@ -1,8 +1,15 @@
 import uvicorn
 from fastapi import FastAPI, Request
-from github import Github, GithubIntegration
-from github_tests_validator_app.constants import APP_ID, APP_KEY
-from github_tests_validator_app.utils import get_hash_files
+from github import GithubIntegration
+from github_tests_validator_app.constants import (
+    APP_ID,
+    APP_KEY,
+    SOLUTION_OWNER,
+    SOLUTION_REPO_NAME,
+    SOLUTION_TESTS_ACCESS_TOKEN,
+    TESTS_FOLDER_NAME,
+)
+from github_tests_validator_app.utils import compare_tests_folder, get_repo
 
 app = FastAPI()
 
@@ -21,17 +28,16 @@ async def main(request: Request) -> None:
 
     owner = payload["repository"]["owner"]["login"]
     repo_name = payload["repository"]["name"]
+    token = git_integration.get_access_token(
+        git_integration.get_installation(owner, repo_name).id
+    ).token
 
-    git_connection = Github(
-        login_or_token=git_integration.get_access_token(
-            git_integration.get_installation(owner, repo_name).id
-        ).token
-    )
+    student_repo = get_repo(token, owner, repo_name)
+    solution_repo = get_repo(SOLUTION_TESTS_ACCESS_TOKEN, SOLUTION_OWNER, SOLUTION_REPO_NAME)
 
-    repo = git_connection.get_repo(f"{owner}/{repo_name}")
-    contents = repo.get_contents("tests")
-    hashes = get_hash_files(contents)
-    print(hashes)
+    tests_havent_changed = compare_tests_folder(student_repo, solution_repo)
+    print(tests_havent_changed)
+
     return
 
 
