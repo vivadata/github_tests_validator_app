@@ -148,17 +148,3 @@ clean_build:
 
 .PHONY: clean
 clean: clean_build clean_docker
-
-.PHONY: github-install
-github-install:
-	if [ -f ./github_install.sh ]; then \
-		./github_install.sh; \
-		read -p "The GitHub repository is now initialized. Do you want to delete the file 'github_install.sh' ? (y/n) : " rm_github_install; \
-		if [ "$${rm_github_install}" == "y" ]; then \
-			rm github_install.sh; \
-		else \
-			echo "Keeping 'github_install.sh' file in repository !"; \
-		fi; \
-	else \
-		echo "Github repository already initialized !"; \
-	fi;

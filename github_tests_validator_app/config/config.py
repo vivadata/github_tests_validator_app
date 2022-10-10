@@ -6,21 +6,21 @@ import yaml
 
 # GitHub
 GH_APP_ID = cast(str, os.getenv("GH_APP_ID", None))
-GH_SOLUTION_OWNER = "artefactory-fr"
-GH_SOLUTION_REPO_NAME = "school_of_data_tests"
+GH_SOLUTION_OWNER = cast(str, os.getenv("GH_SOLUTION_OWNER", None))
+GH_SOLUTION_REPO_NAME = cast(str, os.getenv("GH_SOLUTION_REPO_NAME", None))
 GH_TESTS_FOLDER_NAME = "tests"
 GH_API = "https://api.github.com/repos"
 GH_ALL_ARTIFACT_ENDPOINT = "actions/artifacts"
 
 # GCP
-GCP_PROJECT_ID = "school-of-data-github-app"
+GCP_PROJECT_ID = cast(str, os.getenv("GCP_PROJECT_ID", None))
 
 # Google Secrets
 GH_APP_KEY_NAME = "github_test_validator_app_key"
 GH_ACCESS_TOKEN_NAME = "github_personal_access_token"
 
 # Google Drive
-GDRIVE_MAIN_DIRECTORY_NAME = "school_of_data_results"
+GDRIVE_MAIN_DIRECTORY_NAME = cast(str, os.getenv("GDRIVE_MAIN_DIRECTORY_NAME", None))
 
 # Google Sheet
 GDRIVE_HIERARCHY_PATH = "github_tests_validator_app/config/data/gdrive_hierarchy.yml"

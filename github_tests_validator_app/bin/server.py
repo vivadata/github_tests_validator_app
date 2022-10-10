@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI, Request
 from github_tests_validator_app.bin.github_event_process import run
 
+
 app = FastAPI()
 
 
@@ -19,6 +20,10 @@ async def main(request: Request):
         formatted_exception = traceback.format_exc()
         logging.error(formatted_exception)
 
-
-if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=os.environ.get("PORT", 8080), log_level="info")
+def launch_app():
+    uvicorn.run(
+        "github_tests_validator_app.bin.server:app",
+        host="0.0.0.0",
+        port=os.environ.get("PORT", 8080),
+        log_level="info"
+    )

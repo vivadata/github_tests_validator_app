@@ -97,14 +97,14 @@ def run(payload: Dict[str, Any]) -> Any:
 
     # Init Google Drive connector and folders
     google_drive = GoogleDriveConnector()
-    folder_school_of_data = google_drive.get_gdrive_folder(GDRIVE_MAIN_DIRECTORY_NAME, USER_SHARE)
+    folder = google_drive.get_gdrive_folder(GDRIVE_MAIN_DIRECTORY_NAME, USER_SHARE)
 
     # Init Google sheets
     gsheet_summary_file = init_gsheet_file(
-        google_drive, GDRIVE_SUMMARY_SPREADSHEET, folder_school_of_data["id"], USER_SHARE
+        google_drive, GDRIVE_SUMMARY_SPREADSHEET, folder["id"], USER_SHARE
     )
     gsheet_details_file = init_gsheet_detail_file(
-        google_drive, GSHEET_DETAILS_SPREADSHEET, folder_school_of_data["id"], USER_SHARE
+        google_drive, GSHEET_DETAILS_SPREADSHEET, folder["id"], USER_SHARE
     )
 
     # Init Google sheet connector and worksheets

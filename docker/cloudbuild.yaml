@@ -3,7 +3,7 @@ steps:
   args:
   - 'build'
   - '--tag'
-  - 'europe-west1-docker.pkg.dev/school-of-data-github-app/github-test-validator-app/github_test_validator_app_server:lastest'
+  - 'europe-west1-docker.pkg.dev/school-of-data-github-app/github-test-validator-app/github_test_validator_app_server:latest'
   - "--file=./docker/Dockerfile"
   - '.'
   id: Build Artifact
@@ -13,7 +13,7 @@ steps:
   - 'deploy'
   - 'github-test-validator-app-server'
   - '--image'
-  - 'europe-west1-docker.pkg.dev/school-of-data-github-app/github-test-validator-app/github_test_validator_app_server:lastest'
+  - 'europe-west1-docker.pkg.dev/school-of-data-github-app/github-test-validator-app/github_test_validator_app_server:latest'
   - '--region'
   - 'europe-west1'
   - '--platform'
@@ -27,4 +27,4 @@ steps:
   - '--set-env-vars'
   - 'ENV=PROD'
 images:
-- 'europe-west1-docker.pkg.dev/school-of-data-github-app/github-test-validator-app/github_test_validator_app_server:lastest'
+- 'europe-west1-docker.pkg.dev/school-of-data-github-app/github-test-validator-app/github_test_validator_app_server:latest'
