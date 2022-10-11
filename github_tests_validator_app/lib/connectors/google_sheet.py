@@ -4,7 +4,7 @@ import json
 import logging
 
 import gspread
-from github_tests_validator_app.config.config import GDRIVE_SUMMARY_SPREADSHEET
+from github_tests_validator_app.config import GDRIVE_SUMMARY_SPREADSHEET
 from github_tests_validator_app.lib.models.file import GSheetDetailFile, GSheetFile
 from github_tests_validator_app.lib.models.pytest_result import PytestResult
 from github_tests_validator_app.lib.models.users import GitHubUser

@@ -1,3 +1,5 @@
+from typing import cast
+
 import logging
 import os
 import traceback
@@ -6,13 +8,11 @@ import uvicorn
 from fastapi import FastAPI, Request
 from github_tests_validator_app.bin.github_event_process import run
 
-
 app = FastAPI()
 
 
 @app.post("/")
-async def main(request: Request):
-
+async def main(request: Request) -> None:
     try:
         payload = await request.json()
         run(payload)
@@ -20,10 +20,11 @@ async def main(request: Request):
         formatted_exception = traceback.format_exc()
         logging.error(formatted_exception)
 
+
 def launch_app():
     uvicorn.run(
-        "github_tests_validator_app.bin.server:app",
-        host="0.0.0.0",
-        port=os.environ.get("PORT", 8080),
-        log_level="info"
+        app,
+        host="127.0.0.1",
+        port=cast(int, os.environ.get("PORT", 8080)),
+        log_level="info",
     )

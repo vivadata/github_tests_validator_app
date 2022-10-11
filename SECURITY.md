@@ -6,8 +6,7 @@
 > It is critical that security related issues are reported privately so we have time to address them before they become public knowledge.
 
 Vulnerabilities can be reported by emailing core members:
-
-- artefactory [hello@artefactory.com](mailto:hello@artefactory.com)
+- artefactory [fr-softeng@artefact.com](mailto:fr-softeng@artefact.com)
 
 Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
 
