@@ -5,9 +5,7 @@
 [![CI status](https://github.com/artefactory/github_tests_validator_app/actions/workflows/ci.yml/badge.svg?branch%3Amain&event%3Apush)](https://github.com/artefactory/github_tests_validator_app/actions/workflows/ci.yml?query=branch%3Amain)
 [![CD status](https://github.com/artefactory/github_tests_validator_app/actions/workflows/cd.yml/badge.svg?event%3Arelease)](https://github.com/artefactory/github_tests_validator_app/actions/workflows/cd.yml?query=event%3Arelease)
 [![Python Version](https://img.shields.io/badge/Python-3.9-informational.svg)](#supported-python-versions)
-[![Dependencies Status](https://img.shields.io/badge/dependabots-active-informational.svg)](https://github.com/artefactory/github_tests_validator_app}/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
-
-[![Releases](https://img.shields.io/badge/%F0%9F%9A%80-semantic%20versions-informational.svg)](https://github.com/artefactory/github_tests_validator_app/releases)
+[![Releases](https://img.shields.io/badge/%F0%9F%9A%80-releases-informational.svg)](https://github.com/artefactory/github_tests_validator_app/releases)
 
 
 `github_tests_validator_app` is a GitHub Application you can deploy on your own to retrieve test results from forked projects.
