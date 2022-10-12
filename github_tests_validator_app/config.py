@@ -6,7 +6,7 @@ import os
 import google.cloud.logging
 import yaml
 
-if os.getenv("LOGGING", "") == "GCP":
+if os.getenv("LOGGING", "").replace("\r\n", "") == "GCP":
     logging_client = google.cloud.logging.Client()
     logging_client.get_default_handler()
     logging_client.setup_logging()
@@ -23,17 +23,19 @@ else:
         logging.getLogger("uvicorn").removeHandler(logging.getLogger("uvicorn").handlers[0])
 
 # GitHub
-GH_APP_ID = cast(str, os.getenv("GH_APP_ID", None))
+GH_APP_ID = cast(str, os.getenv("GH_APP_ID", None)).replace("\r\n", "")
 GH_APP_KEY = cast(str, os.getenv("GH_APP_KEY", None))
-GH_PAT = cast(str, os.getenv("GH_PAT", None))
-GH_TESTS_REPO_NAME = cast(str, os.getenv("GH_TESTS_REPO_NAME", None))
+GH_PAT = cast(str, os.getenv("GH_PAT", None)).replace("\r\n", "")
+GH_TESTS_REPO_NAME = cast(str, os.getenv("GH_TESTS_REPO_NAME", "")).replace("\r\n", "")
 GH_TESTS_FOLDER_NAME = "tests"
 GH_WORKFLOWS_FOLDER_NAME = ".github/workflows"
 GH_API = "https://api.github.com/repos"
 GH_ALL_ARTIFACT_ENDPOINT = "actions/artifacts"
 
 # Google Drive
-GDRIVE_MAIN_DIRECTORY_NAME = cast(str, os.getenv("GDRIVE_MAIN_DIRECTORY_NAME", None))
+GDRIVE_MAIN_DIRECTORY_NAME = cast(str, os.getenv("GDRIVE_MAIN_DIRECTORY_NAME", "")).replace(
+    "\r\n", ""
+)
 
 # Google Sheet
 GDRIVE_HIERARCHY_PATH = "github_tests_validator_app/data/gdrive_hierarchy.yml"
@@ -60,4 +62,4 @@ default_message: Dict[str, Dict[str, Dict[str, str]]] = {
 # Common
 CHALLENGE_DIR = "tests/tests/"
 DATE_FORMAT = "%d/%m/%Y %H:%M:%S"
-USER_SHARE = os.getenv("USER_SHARE", "").split(",")
+USER_SHARE = os.getenv("USER_SHARE", "").replace("\r\n", "").split(",")
