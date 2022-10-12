@@ -35,7 +35,7 @@ class GitHubConnector:
             self.set_git_integration()
             self.set_access_token(repo_name)
         self.connector = Github(login_or_token=self.ACCESS_TOKEN, timeout=30)
-        self.repo = self.connector.get_repo(f"{self.user.LOGIN}/{repo_name}")
+        self.repo = self.connector.get_repo(f"{repo_name}")
         logging.info("Done.")
 
     def set_git_integration(self) -> None:
@@ -52,7 +52,7 @@ class GitHubConnector:
     def get_repo(self, repo_name: str) -> Repository.Repository:
         self.REPO_NAME = repo_name
         logging.info(f"Connecting to new repo: {repo_name} with user: {self.user.LOGIN} ...")
-        self.repo = self.connector.get_repo(f"{self.user.LOGIN}/{repo_name}")
+        self.repo = self.connector.get_repo(f"{repo_name}")
         logging.info("Done.")
         return self.repo
 
