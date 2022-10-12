@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import logging
 
-from github_tests_validator_app.config.config import CHALLENGE_DIR
+from github_tests_validator_app.config import CHALLENGE_DIR
 from github_tests_validator_app.lib.connectors.github_connector import GitHubConnector
 from github_tests_validator_app.lib.connectors.google_sheet import GSheetConnector
 from github_tests_validator_app.lib.models.pytest_result import PytestResult

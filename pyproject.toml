@@ -10,9 +10,8 @@ version = "0.1.0"
 description = "`github_tests_validator_app` is a Python cli/package"
 readme = "README.md"
 authors = [
-  "artefactory <hello@artefactory.com>"
+  "artefactory <fr-softeng@artefact.com>"
 ]
-license = "MIT"
 repository = "https://github.com/artefactory/github_tests_validator_app"
 homepage = "https://github.com/artefactory/github_tests_validator_app"
 
@@ -29,7 +28,7 @@ classifiers = [  # Update me
 
 [tool.poetry.scripts]
 # Entry points for the package https://python-poetry.org/docs/pyproject/#scripts
-"github_tests_validator_app" = "github_tests_validator_app.cli.__main__:app"
+"launch_github_app" = "github_tests_validator_app.bin.github_app_backend:launch_app"
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -50,7 +49,6 @@ types-PyYAML = "^6.0.11"
 google-api-python-client = "^2.60.0"
 google-auth-httplib2 = "^0.1.0"
 google-auth-oauthlib = "^0.5.2"
-google-cloud-secret-manager = "^2.12.4"
 PyYAML = "^6.0"
 google-cloud-logging = "^3.2.2"
 

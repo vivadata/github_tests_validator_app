@@ -7,211 +7,70 @@
 [![Python Version](https://img.shields.io/badge/Python-3.9-informational.svg)](#supported-python-versions)
 [![Dependencies Status](https://img.shields.io/badge/dependabots-active-informational.svg)](https://github.com/artefactory/github_tests_validator_app}/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
 
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Security: bandit](https://img.shields.io/badge/security-bandit-informational.svg)](https://github.com/PyCQA/bandit)
-[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-informational?logo=pre-commit&logoColor=white)](https://github.com/artefactory/github_tests_validator_app}/blob/main/.pre-commit-config.yaml)
-[![Semantic Versions](https://img.shields.io/badge/%F0%9F%9A%80-semantic%20versions-informational.svg)](https://github.com/artefactory/github_tests_validator_app/releases)
-[![Documentation](https://img.shields.io/badge/doc-sphinx-informational.svg)](https://github.com/artefactory/github_tests_validator_app}/tree/main/docs)
-[![License](https://img.shields.io/badge/License-MIT-informational.svg)](https://github.com/artefactory/github_tests_validator_app}/blob/main/LICENSE)
+[![Releases](https://img.shields.io/badge/%F0%9F%9A%80-semantic%20versions-informational.svg)](https://github.com/artefactory/github_tests_validator_app/releases)
 
-`github_tests_validator_app` is a Python cli/package
+
+`github_tests_validator_app` is a GitHub Application you can deploy on your own to retrieve test results from forked projects.
+
+Here is how it works :
+
+![Architecture](docs/architecture.png)
+
+The main purpose of this project is for education.
+
+Often, Computer Science teachers can have a main repository and ask their students to fork their repository to complete the courses from their repository.
+
+Students never merge their repository into the main one, so it can be tedious for teachers to retrieve informations about the results from their exercices.
+
+By deploying a GitHub App and asking their students to install this app on their GitHub forked projects, teachers can retrieve automatically the results from their tests (using [pytest](https://docs.pytest.org/en/7.1.x/)) into Google Sheets.
 
 </div>
 
-## TL;DR
+## Prerequisites
+
+1) You need to [create a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app) in your organization or personal account on GitHub
+2) For GCP cloud run deployment, you may need to install terraform and the gcloud CLI.
+
+## Deploy locally
+
+You first need to create a `.env` file by filling up the values from the `.env.template` file.
+More details about each of these values [below](#environment-variables-details).
+
+You can start the GitHub App backend locally with the following command :
 
 ```bash
-pip install git+ssh://git@github.com/artefactory/github_tests_validator_app.git@main
+docker run -d --rm -p 127.0.0.1:8080:8080 --env-file .env ghcr.io/artefactory/github_tests_validator_app:latest
 ```
 
-## Supported Python Versions
+Then you can use [smee.io](https://smee.io/) or [ngrok](https://ngrok.com/) to serve your applications running locally.
 
-Main version supported : `3.9`
+## Deploy in the cloud
 
-Other supported versions :
+With Cloud Run, you have an example terraform configuration [here](https://github.com/artefactory/github_tests_validator_app/blob/main/examples/cloud_run/).
 
+But you can deploy the application on many Serverless Container services on any cloud by making sure that :
+- The secrets defined in the `.env` file are available for the container at runtime as environment variables
+- The container can receive HTTP requests
+- The container can use a GCP service account to login with the [Python Google Auth client](https://google-auth.readthedocs.io/en/master/)
+- The service account is linked to a GCP Project which has the Google Drive API enabled
 
-## Installation
+## Environment variables details
 
-### Public Package
+- GH_APP_ID : Auto-generated ID of the GitHub App you created during the [`Prerequisites`](#prerequisites) step.
+- GH_APP_KEY : Private Key of the GitHub App you created during the [`Prerequisites`](#prerequisites) step.
+- GH_PAT : GitHub personal access token [you must create](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) that has access to the GitHub repository containing the tests and the original repository which was forked (both could be the same repository).
+- GDRIVE_MAIN_DIRECTORY_NAME : Name of the Google Drive Folder where you want the stats to be sent.
+- USER_SHARE : Comma-separated list of emails that have access to this Google Drive Folder.
+- LOGGING : "LOCAL" if you are deploying locally, "GCP" if you are deploying on Google Cloud Run.
+- GH_TESTS_REPO_NAME : (Optional, only if you are using a git submodule for the tests folder) Name of the repository containing the tests (could be convenient if you have a repository with the exercices, and another one with the solutions and you want to have the same tests in both repositories by providing a submodule defined in a third repository).
 
-Install the package from PyPi if it is publicly available :
+## Contributing
 
-```bash
-pip install -U github_tests_validator_app
-```
-
-or with `Poetry`
-
-```bash
-poetry add github_tests_validator_app
-```
-
-### Private Package
-
-Install the package from a private Github repository from the main branch:
-
-```bash
-pip install git+ssh://git@github.com/artefactory/github_tests_validator_app.git@main
-```
-
-Or with `Poetry`
-
-```bash
-poetry add git+ssh://git@github.com/artefactory/github_tests_validator_app.git@main
-```
-
-Or from a known tag:
-
-```bash
-pip install git+ssh://git@github.com/artefactory/github_tests_validator_app.git@0.1.0
-```
-
-Or from the latest Github Release using [personal access tokens](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token)
-
-```bash
-# Set the GITHUB_TOKEN environment variable to your personal access token
-latest_release_tag=$(curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/artefactory/github_tests_validator_app/releases/latest | jq -r ".tag_name")
-pip install git+ssh://git@github.com/artefactory/github_tests_validator_app.git@${latest_release_tag}
-```
-
-## Usage
-
-Once installed, you can run commands like :
-
-```bash
-github_tests_validator_app --help
-```
-
-```bash
-github_tests_validator_app dialogs hello --name Roman
-```
-
-```bash
-github_tests_validator_app dialogs clock --color blue
-```
-
-or if installed with `Poetry`:
-
-```bash
-poetry run github_tests_validator_app --help
-```
-
-```bash
-poetry run github_tests_validator_app dialogs hello --name Roman
-```
-
-or using Docker :
-
-```bash
-docker run ghcr.io/artefactory/github_tests_validator_app:0.1.0 --help
-```
-
-```bash
-docker run ghcr.io/artefactory/github_tests_validator_app:0.1.0 dialogs hello --name Roman
-```
-
-## Local setup
-
-If you want to contribute to the development of this package, 
-
-1. Clone the repository :
-
-```bash
-git clone git@github.com:artefactory/github_tests_validator_app.git
-```
-
-2. If you don't have `Poetry` installed, run:
-
-```bash
-make download-poetry; export PATH="$HOME/.local/bin:$PATH"
-```
-
-3. Initialize poetry and install `pre-commit` hooks:
-
-```bash
-make install
-```
-
-And you are ready to develop !
-
-### Initial Github setting up
-
-Can be automatically done directly after using the [`cookiecutter` template](https://github.com/artefactory/ppt) :
-
-```bash
-make github-install
-```
-
-Otherwise, see :
-- [Stale bot](https://github.com/apps/stale) for automatic issue closing.
-- [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) to deploy your documentation from the `gh-pages` branch.
-- [GitHub Branch Protection](https://docs.github.com/en/github/administering-a-repository/about-protected-branches) to secure your `main` branch.
-
-### Poetry
-
-All manipulations with dependencies are executed through Poetry. If you're new to it, look through [the documentation](https://python-poetry.org/docs/).
-
-<details>
-<summary>Notes about Poetry commands</summary>
-<p>
-
-Here are some examples of Poetry [commands](https://python-poetry.org/docs/cli/#commands) :
-
-- `poetry add numpy`
-- `poetry run pytest`
-- `poetry build`
-- etc
-
-</p>
-</details>
-
-### Building your package
-
-Building a new version of the application contains steps:
-
-- Bump the version of your package `poetry version <version>`. You can pass the new version explicitly, or a rule such as `major`, `minor`, or `patch`. For more details, refer to the [Semantic Versions](https://semver.org/) standard.
-- Make a commit to `GitHub`.
-- Create a `GitHub release`.
-- And... publish  only if you want to make your package publicly available on PyPi 🙂 `poetry publish --build`
-
-Packages:
-
-- [`Typer`](https://github.com/tiangolo/typer) is great for creating CLI applications.
-- [`Rich`](https://github.com/willmcgugan/rich) makes it easy to add beautiful formatting in the terminal.
-
-## 🚀 Features
-
-- Support for `Python 3.9`
-- [`Poetry`](https://python-poetry.org/) as the dependencies manager. See configuration in [`pyproject.toml`](https://github.com/artefactory/github_tests_validator_app}/blob/main/pyproject.toml) and [`setup.cfg`](https://github.com/artefactory/github_tests_validator_app}/blob/main/setup.cfg).
-- Power of [`black`](https://github.com/psf/black), [`isort`](https://github.com/timothycrosley/isort) and [`pyupgrade`](https://github.com/asottile/pyupgrade) formatters.
-- Ready-to-use [`pre-commit`](https://pre-commit.com/) hooks with formatters above.
-- Type checks with [`mypy`](https://mypy.readthedocs.io).
-- Testing with [`pytest`](https://docs.pytest.org/en/latest/).
-- Docstring checks with [`darglint`](https://github.com/terrencepreilly/darglint).
-- Security checks with [`safety`](https://github.com/pyupio/safety), [`bandit`](https://github.com/PyCQA/bandit) and [`anchore`](https://github.com/anchore/scan-action).
-- Secrets scanning with [`gitleaks`](https://github.com/zricethezav/gitleaks)
-- Well-made [`.editorconfig`](https://github.com/artefactory/github_tests_validator_app}/blob/main/.editorconfig), [`.dockerignore`](https://github.com/artefactory/github_tests_validator_app}/blob/main/.dockerignore), and [`.gitignore`](https://github.com/artefactory/github_tests_validator_app}/blob/main/.gitignore). You don't have to worry about those things.
-
-For building and deployment:
-
-- `GitHub` integration.
-- [`Makefile`](https://github.com/artefactory/github_tests_validator_app}/blob/main/Makefile#L89) for building routines. Everything is already set up for security checks, codestyle checks, code formatting, testing, linting, docker builds, etc. More details at [Makefile summary](#makefile-usage)).
-- [Dockerfile](https://github.com/artefactory/github_tests_validator_app}/blob/main/docker/Dockerfile) for your package.
-- `Github Actions` with predefined [build workflow](https://github.com/artefactory/github_tests_validator_app}/blob/main/.github/workflows/build.yml) as the default CI/CD.
-- `Github Packages` with Github Container Registry updated automatically when [releasing the package](https://github.com/artefactory/ppt/blob/main/%7B%7B%20cookiecutter.project_name.lower().replace('%20'%2C%20'_')%20%7D%7D/.github/workflows/cd.yml).
-- Automatic drafts of new releases with [`Release Drafter`](https://github.com/marketplace/actions/release-drafter). It creates a list of changes based on labels in merged `Pull Requests`. You can see labels (aka `categories`) in [`release-drafter.yml`](https://github.com/artefactory/github_tests_validator_app}/blob/main/.github/release-drafter.yml). Works perfectly with [Semantic Versions](https://semver.org/) specification.
-
-For creating your open source community:
-
-- Ready-to-use [Pull Requests templates](https://github.com/artefactory/github_tests_validator_app}/blob/main/.github/PULL_REQUEST_TEMPLATE.md) and several [Issue templates](https://github.com/artefactory/github_tests_validator_app}/tree/main/.github/ISSUE_TEMPLATE).
-- Files such as: `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` are generated automatically.
-- [`Stale bot`](https://github.com/apps/stale) that closes abandoned issues after a period of inactivity. (You will only [need to setup free plan](https://github.com/marketplace/stale)). Configuration is [here](https://github.com/artefactory/github_tests_validator_app}/blob/main/.github/.stale.yml).
-- [Semantic Versions](https://semver.org/) specification with [`Release Drafter`](https://github.com/marketplace/actions/release-drafter).
+Check the guide here : [CONTRIBUTING](https://github.com/artefactory/github_tests_validator_app/blob/main/CONTRIBUTING.md)
 
 ### Makefile usage
 
-[`Makefile`](https://github.com/artefactory/github_tests_validator_app}/blob/main/Makefile) contains many functions for fast assembling and convenient work.
+[`Makefile`](https://github.com/artefactory/github_tests_validator_app/blob/main/Makefile) contains many functions for fast assembling and convenient work.
 
 <details>
 <summary>1. Download Poetry</summary>
@@ -392,43 +251,13 @@ deactivate
 </p>
 </details>
 
-## 📈 Releases
+<details>
+<summary>11. Deploy on GCP</summary>
+<p>
 
-You can see the list of available releases on the [GitHub Releases](https://github.com/artefactory/github_tests_validator_app}/releases) page.
-
-We follow [Semantic Versions](https://semver.org/) specification.
-
-We use [`Release Drafter`](https://github.com/marketplace/actions/release-drafter). As pull requests are merged, a draft release is kept up-to-date listing the changes, ready to publish when you’re ready. With the categories option, you can categorize pull requests in release notes using labels.
-
-For Pull Requests, these labels are configured, by default:
-
-|               **Label**               |  **Title in Releases**  |
-| :-----------------------------------: | :---------------------: |
-|       `enhancement`, `feature`        |       🚀 Features       |
-| `bug`, `refactoring`, `bugfix`, `fix` | 🔧 Fixes & Refactoring  |
-|       `build`, `ci`, `testing`        | 📦 Build System & CI/CD |
-|              `breaking`               |   💥 Breaking Changes   |
-|            `documentation`            |    📝 Documentation     |
-|            `dependencies`             | ⬆️ Dependencies updates |
-
-
-GitHub creates the `bug`, `enhancement`, and `documentation` labels automatically. Dependabot creates the `dependencies` label. Create the remaining labels on the Issues tab of the GitHub repository, when needed.## 🛡 License
-
-[![License](https://img.shields.io/github/license/artefactory/github_tests_validator_app)](https://github.com/artefactory/github_tests_validator_app}/blob/main/LICENSE)
-
-This project is licensed under the terms of the `MIT` license. See [LICENSE](https://github.com/artefactory/github_tests_validator_app}/blob/main/LICENSE) for more details.## 📃 Citation
-
-```
-@misc{github_tests_validator_app,
-  author = {artefactory},
-  title = {`github_tests_validator_app` is a Python cli/package},
-  year = {2022},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/artefactory/github_tests_validator_app}}}
-}
+```bash
+make deploy_gcp
 ```
 
-## Credits
-
-This project was generated with [`ppt`](https://github.com/artefactory/ppt).
+</p>
+</details>

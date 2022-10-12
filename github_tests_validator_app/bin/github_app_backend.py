@@ -1,3 +1,5 @@
+from typing import cast
+
 import logging
 import os
 import traceback
@@ -10,8 +12,7 @@ app = FastAPI()
 
 
 @app.post("/")
-async def main(request: Request):
-
+async def main(request: Request) -> None:
     try:
         payload = await request.json()
         run(payload)
@@ -20,5 +21,10 @@ async def main(request: Request):
         logging.error(formatted_exception)
 
 
-if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=os.environ.get("PORT", 8080), log_level="info")
+def launch_app():
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=cast(int, os.environ.get("PORT", 8080)),
+        log_level="info",
+    )

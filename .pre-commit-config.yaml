@@ -39,6 +39,7 @@ repos:
         types: [python]
         language: system
         stages: [push]
+        pass_filenames: false
       - id: darglint
         name: darglint
         entry: poetry run darglint -v 2

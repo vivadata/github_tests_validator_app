@@ -5,12 +5,12 @@ import logging
 from github_tests_validator_app.bin.github_repo_validation import (
     get_event,
     get_student_github_connector,
-    github_repo_validation,
+    validate_github_repo,
 )
 from github_tests_validator_app.bin.student_challenge_results_validation import (
     send_student_challenge_results,
 )
-from github_tests_validator_app.config.config import (
+from github_tests_validator_app.config import (
     GDRIVE_MAIN_DIRECTORY_NAME,
     GDRIVE_SUMMARY_SPREADSHEET,
     GSHEET_DETAILS_SPREADSHEET,
@@ -23,15 +23,15 @@ from github_tests_validator_app.lib.models.users import GitHubUser
 from github_tests_validator_app.lib.utils import init_github_user_from_github_event
 
 process = {
-    "pull_request": github_repo_validation,
-    "pusher": github_repo_validation,
+    "pull_request": validate_github_repo,
+    "pusher": validate_github_repo,
     "workflow_job": send_student_challenge_results,
 }
 
 
 def handle_process(payload: Dict[str, Any]) -> str:
     # Get event
-    event = get_event(payload)
+    event: str = get_event(payload)
     if (
         not event
         or (event == "pull_request" and payload["action"] not in ["reopened", "opened"])
@@ -80,12 +80,12 @@ def init_gsheet_detail_file(
     )
 
 
-def run(payload: Dict[str, Any]) -> Any:
+def run(payload: Dict[str, Any]) -> None:
     """
     Validator function
 
     Args:
-        payload Dict[str, Any]: information of new event
+        payload (Dict[str, Any]): information of new event
 
     Returns:
         None: Return nothing
@@ -97,14 +97,14 @@ def run(payload: Dict[str, Any]) -> Any:
 
     # Init Google Drive connector and folders
     google_drive = GoogleDriveConnector()
-    folder_school_of_data = google_drive.get_gdrive_folder(GDRIVE_MAIN_DIRECTORY_NAME, USER_SHARE)
+    folder = google_drive.get_gdrive_folder(GDRIVE_MAIN_DIRECTORY_NAME, USER_SHARE)
 
     # Init Google sheets
     gsheet_summary_file = init_gsheet_file(
-        google_drive, GDRIVE_SUMMARY_SPREADSHEET, folder_school_of_data["id"], USER_SHARE
+        google_drive, GDRIVE_SUMMARY_SPREADSHEET, folder["id"], USER_SHARE
     )
     gsheet_details_file = init_gsheet_detail_file(
-        google_drive, GSHEET_DETAILS_SPREADSHEET, folder_school_of_data["id"], USER_SHARE
+        google_drive, GSHEET_DETAILS_SPREADSHEET, folder["id"], USER_SHARE
     )
 
     # Init Google sheet connector and worksheets

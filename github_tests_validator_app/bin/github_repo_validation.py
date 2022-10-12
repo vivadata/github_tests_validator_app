@@ -3,16 +3,14 @@ from typing import Any, Dict, List, Union
 import logging
 
 from github import ContentFile
-from github_tests_validator_app.config.config import (
-    GCP_PROJECT_ID,
-    GH_ACCESS_TOKEN_NAME,
-    GH_SOLUTION_OWNER,
-    GH_SOLUTION_REPO_NAME,
+from github_tests_validator_app.config import (
+    GH_PAT,
     GH_TESTS_FOLDER_NAME,
+    GH_TESTS_REPO_NAME,
+    GH_WORKFLOWS_FOLDER_NAME,
     default_message,
 )
 from github_tests_validator_app.lib.connectors.github_connector import GitHubConnector
-from github_tests_validator_app.lib.connectors.google_secret_manager import GSecretManager
 from github_tests_validator_app.lib.connectors.google_sheet import GSheetConnector
 from github_tests_validator_app.lib.models.users import GitHubUser
 
@@ -70,66 +68,99 @@ def get_student_github_connector(
     return GitHubConnector(student, payload["repository"]["name"], github_student_branch)
 
 
-def compare_tests_folder(student_github: GitHubConnector, solution_repo: GitHubConnector) -> Any:
+def compare_folder(
+    student_github: GitHubConnector, solution_repo: GitHubConnector, folder: str
+) -> Any:
 
-    student_contents = student_github.repo.get_contents(
-        GH_TESTS_FOLDER_NAME, ref=student_github.BRANCH_NAME
-    )
+    student_contents = student_github.repo.get_contents(folder, ref=student_github.BRANCH_NAME)
 
     if (
         isinstance(student_contents, ContentFile.ContentFile)
         and student_contents.type == "submodule"
     ):
         solution_last_commit = solution_repo.get_last_hash_commit()
-        student_tests_commit = student_contents.sha
-        return solution_last_commit == student_tests_commit
+        student_commit = student_contents.sha
+        return solution_last_commit == student_commit
 
-    student_hash_tests = student_github.get_tests_hash(GH_TESTS_FOLDER_NAME)
-    solution_hash_tests = solution_repo.get_tests_hash(GH_TESTS_FOLDER_NAME)
-    return student_hash_tests == solution_hash_tests
+    student_hash = student_github.get_hash(folder)
+    solution_hash = solution_repo.get_hash(folder)
+    return student_hash == solution_hash
 
 
-def github_repo_validation(
+def validate_github_repo(
     student_github_connector: GitHubConnector, gsheet: GSheetConnector, payload: Dict[str, Any]
 ) -> None:
 
-    solution_user = GitHubUser(LOGIN=GH_SOLUTION_OWNER)
-    gsecret_manager = GSecretManager(GCP_PROJECT_ID)
-    acces_token = gsecret_manager.get_access_secret_version(GH_ACCESS_TOKEN_NAME)
-
-    solution_github_connector = GitHubConnector(
-        user=solution_user,
-        repo_name=GH_SOLUTION_REPO_NAME,
+    tests_github_connector = GitHubConnector(
+        user=student_github_connector.user,
+        repo_name=GH_TESTS_REPO_NAME
+        if GH_TESTS_REPO_NAME
+        else student_github_connector.repo.parent.full_name,
         branch_name="main",
-        access_token=acces_token,
+        access_token=GH_PAT,
     )
-    if not solution_github_connector:
+    original_github_connector = GitHubConnector(
+        user=student_github_connector.user,
+        repo_name=student_github_connector.repo.parent.full_name,
+        branch_name="main",
+        access_token=GH_PAT,
+    )
+    if not tests_github_connector:
         gsheet.add_new_repo_valid_result(
-            solution_user,
+            student_github_connector.user,
             False,
-            "[ERROR]: cannot get the solution github repository.",
+            "[ERROR]: cannot get the tests github repository.",
         )
-        logging.error("[ERROR]: cannot get the solution github repository.")
+        logging.error("[ERROR]: cannot get the tests github repository.")
+        return
+    if not original_github_connector:
+        gsheet.add_new_repo_valid_result(
+            student_github_connector.user,
+            False,
+            "[ERROR]: cannot get the original github repository.",
+        )
+        logging.error("[ERROR]: cannot get the original github repository.")
         return
 
-    tests_havent_changed = compare_tests_folder(student_github_connector, solution_github_connector)
+    workflows_havent_changed = compare_folder(
+        student_github_connector, original_github_connector, GH_WORKFLOWS_FOLDER_NAME
+    )
+    tests_havent_changed = compare_folder(
+        student_github_connector, tests_github_connector, GH_TESTS_FOLDER_NAME
+    )
 
     # Add valid repo result on Google Sheet
     gsheet.add_new_repo_valid_result(
         student_github_connector.user,
+        workflows_havent_changed,
+        default_message["valid_repository"]["workflows"][str(workflows_havent_changed)],
+    )
+    gsheet.add_new_repo_valid_result(
+        student_github_connector.user,
         tests_havent_changed,
-        default_message["valid_repository"][str(tests_havent_changed)],
+        default_message["valid_repository"]["tests"][str(tests_havent_changed)],
     )
 
     # Update Pull Request
     if "pull_request" in payload:
         issue = student_github_connector.repo.get_issue(number=payload["pull_request"]["number"])
-        message = default_message["valid_repository"][str(tests_havent_changed)]
-        issue.create_comment(message)
-        conclusion = "success" if tests_havent_changed else "failure"
+        tests_conclusion = "success" if tests_havent_changed else "failure"
+        tests_message = default_message["valid_repository"]["tests"][str(tests_havent_changed)]
+        issue.create_comment(tests_message)
         student_github_connector.repo.create_check_run(
-            name=message,
+            name=tests_message,
             head_sha=payload["pull_request"]["head"]["sha"],
             status="completed",
-            conclusion=conclusion,
+            conclusion=tests_conclusion,
         )
+        workflows_conclusion = "success" if workflows_havent_changed else "failure"
+        workflows_message = default_message["valid_repository"]["workflows"][
+            str(workflows_havent_changed)
+        ]
+        student_github_connector.repo.create_check_run(
+            name=workflows_message,
+            head_sha=payload["pull_request"]["head"]["sha"],
+            status="completed",
+            conclusion=workflows_conclusion,
+        )
+        issue.create_comment(workflows_message)

@@ -28,4 +28,4 @@ RUN poetry install --no-root --only main
 
 COPY . /home/docker_user/workspace/
 
-CMD ["poetry", "run", "python3", "server.py"]
+CMD ["poetry", "run", "launch_github_app"]
