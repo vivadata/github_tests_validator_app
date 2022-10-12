@@ -29,6 +29,22 @@ By deploying a GitHub App and asking their students to install this app on their
 1) You need to [create a GitHub App](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app) in your organization or personal account on GitHub
 2) For GCP cloud run deployment, you may need to install terraform and the gcloud CLI.
 
+## GitHub App
+
+Your GitHub App needs the following informations :
+
+### Repository permissions
+- Actions: RO
+- Checks: RW # create a check on PR
+- Issues: RW # comment the issue
+- Contents: RO
+- Pull requests: RW # comment the issue
+
+### Subscribe to events
+- Pull request
+- Push
+- Workflow job
+
 ## Deploy locally
 
 You first need to create a `.env` file by filling up the values from the `.env.template` file.
