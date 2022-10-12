@@ -65,7 +65,7 @@ def get_student_github_connector(
     if github_student_branch is None:
         return None
 
-    return GitHubConnector(student, payload["repository"]["name"], github_student_branch)
+    return GitHubConnector(student, payload["repository"]["full_name"], github_student_branch)
 
 
 def compare_folder(
