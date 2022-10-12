@@ -25,6 +25,6 @@ def launch_app():
     uvicorn.run(
         app,
         host="0.0.0.0",  # nosec B104
-        port=cast(int, os.environ.get("PORT", 8080)),
+        port=int(os.environ.get("PORT", 8080)),
         log_level="info",
     )
