@@ -97,6 +97,8 @@ class GoogleDriveConnector:
             else:
                 ids.append(response.get("id"))
 
+        logging.info(f"Sharing file {real_file_id} to : {user_email}")
+
         batch = self.client.new_batch_http_request(callback=callback)
         user_permission = {"type": "user", "role": "writer", "emailAddress": user_email}
         batch.add(

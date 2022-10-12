@@ -91,6 +91,8 @@ def validate_github_repo(
     student_github_connector: GitHubConnector, gsheet: GSheetConnector, payload: Dict[str, Any]
 ) -> None:
 
+    logging.info(f"Connecting to repo : {GH_TESTS_REPO_NAME}")
+
     tests_github_connector = GitHubConnector(
         user=student_github_connector.user,
         repo_name=GH_TESTS_REPO_NAME
@@ -99,6 +101,9 @@ def validate_github_repo(
         branch_name="main",
         access_token=GH_PAT,
     )
+
+    logging.info(f"Connecting to repo : {student_github_connector.repo.parent.full_name}")
+
     original_github_connector = GitHubConnector(
         user=student_github_connector.user,
         repo_name=student_github_connector.repo.parent.full_name,
