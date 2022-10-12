@@ -24,7 +24,7 @@ async def main(request: Request) -> None:
 def launch_app():
     uvicorn.run(
         app,
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=cast(int, os.environ.get("PORT", 8080)),
         log_level="info",
     )

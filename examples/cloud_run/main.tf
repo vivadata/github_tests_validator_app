@@ -28,15 +28,55 @@ resource "google_project_service" "drive_api_service" {
   disable_dependent_services = true
 }
 
+resource "google_service_account" "service_account" {
+  project = "${var.project_id}"
+  account_id   = "github-tests-validator-app"
+  display_name = "Service Account for Cloud Run that sends data to Google Drive"
+}
+
+resource "google_project_iam_binding" "service_account_user" {
+  project = "${var.project_id}"
+  role    = "roles/iam.serviceAccountUser"
+
+  members = [
+    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
+  ]
+}
+
+resource "google_project_iam_binding" "run_admin" {
+  project = "${var.project_id}"
+  role    = "roles/run.admin"
+
+  members = [
+    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
+  ]
+}
+
+resource "google_project_iam_binding" "secret_accessor" {
+  project = "${var.project_id}"
+  role    = "roles/secretmanager.secretAccessor"
+
+  members = [
+    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
+  ]
+}
+
+resource "google_artifact_registry_repository" "github_test_validator_app_registry" {
+  location      = "${var.region}"
+  repository_id = "github-app-registry"
+  description   = "Docker repository to store the GitHub App docker image"
+  format        = "DOCKER"
+}
+
 resource "google_cloud_run_service" "github_test_validator_app" {
     name     = "github-test-validator-app"
     location = "${var.region}"
     template {
         spec {
             timeout_seconds = 300
-            service_account_name = "github_tests_validator_app@${var.project_id}.iam.gserviceaccount.com"
+            service_account_name = "github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
             containers {
-                image = "ghcr.io/artefactory/github_tests_validator_app:latest"
+                image = "${var.region}-docker.pkg.dev/${var.project_id}/github-app-registry/github_tests_validator_app:latest"
                 env {
                     name = "GH_APP_ID"
                     value_from {

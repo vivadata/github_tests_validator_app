@@ -151,4 +151,4 @@ clean: clean_build clean_docker
 
 .PHONY: deploy_gcp
 deploy_gcp:
-	sh examples/cloud_run/deploy.sh
+	./examples/cloud_run/deploy.sh
