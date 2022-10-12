@@ -36,7 +36,7 @@ GH_ALL_ARTIFACT_ENDPOINT = "actions/artifacts"
 GDRIVE_MAIN_DIRECTORY_NAME = cast(str, os.getenv("GDRIVE_MAIN_DIRECTORY_NAME", None))
 
 # Google Sheet
-GDRIVE_HIERARCHY_PATH = "github_tests_validator_app/config/data/gdrive_hierarchy.yml"
+GDRIVE_HIERARCHY_PATH = "github_tests_validator_app/data/gdrive_hierarchy.yml"
 with open(GDRIVE_HIERARCHY_PATH) as file:
     data = yaml.safe_load(file)
 
