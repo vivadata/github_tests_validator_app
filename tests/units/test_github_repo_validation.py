@@ -1,5 +1,5 @@
 import pytest
-from github_tests_validator_app.bin.github_repo_validation import get_event, get_student_branch
+from github_tests_validator_app.bin.github_repo_validation import get_event, get_user_branch
 
 
 @pytest.mark.parametrize(
@@ -25,5 +25,5 @@ def test_get_event(payload, expected):
         ({"ref": "path"}, "pusher", "path"),
     ],
 )
-def test_get_student_branch(payload, trigger, expected):
-    assert get_student_branch(payload, trigger) == expected
+def test_get_user_branch(payload, trigger, expected):
+    assert get_user_branch(payload, trigger) == expected

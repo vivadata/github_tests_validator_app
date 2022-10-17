@@ -13,18 +13,18 @@ from github_tests_validator_app.config import (
     GH_APP_ID,
     GH_APP_KEY,
 )
-from github_tests_validator_app.lib.models.users import GitHubUser
+from github_tests_validator_app.lib.connectors.sqlalchemy_client import User
 from github_tests_validator_app.lib.utils import get_hash_files
 
 
 class GitHubConnector:
     def __init__(
         self,
-        user: GitHubUser,
+        user: User,
         repo_name: str,
         branch_name: str,
         access_token: Union[str, None] = None,
-    ):
+    ) -> None:
         self.user = user
         self.REPO_NAME = repo_name
         self.BRANCH_NAME = branch_name

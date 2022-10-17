@@ -4,28 +4,19 @@ import logging
 
 from github_tests_validator_app.bin.github_repo_validation import (
     get_event,
-    get_student_github_connector,
+    get_user_github_connector,
     validate_github_repo,
 )
-from github_tests_validator_app.bin.student_challenge_results_validation import (
-    send_student_challenge_results,
+from github_tests_validator_app.bin.user_pytest_summaries_validation import (
+    send_user_pytest_summaries,
 )
-from github_tests_validator_app.config import (
-    GDRIVE_MAIN_DIRECTORY_NAME,
-    GDRIVE_SUMMARY_SPREADSHEET,
-    GSHEET_DETAILS_SPREADSHEET,
-    USER_SHARE,
-)
-from github_tests_validator_app.lib.connectors.google_drive import GoogleDriveConnector
-from github_tests_validator_app.lib.connectors.google_sheet import GSheetConnector
-from github_tests_validator_app.lib.models.file import GSheetDetailFile, GSheetFile, WorkSheetFile
-from github_tests_validator_app.lib.models.users import GitHubUser
+from github_tests_validator_app.lib.connectors.sqlalchemy_client import SQLAlchemyConnector, User
 from github_tests_validator_app.lib.utils import init_github_user_from_github_event
 
 process = {
     "pull_request": validate_github_repo,
     "pusher": validate_github_repo,
-    "workflow_job": send_student_challenge_results,
+    "workflow_job": send_user_pytest_summaries,
 }
 
 
@@ -35,49 +26,10 @@ def handle_process(payload: Dict[str, Any]) -> str:
     if (
         not event
         or (event == "pull_request" and payload["action"] not in ["reopened", "opened"])
-        or (
-            event == "workflow_job"
-            and (
-                payload["action"] not in ["completed"]
-                or payload["workflow_job"]["conclusion"] != "success"
-            )
-        )
+        or (event == "workflow_job" and payload["action"] not in ["completed"])
     ):
         return ""
     return event
-
-
-def init_gsheet_file(
-    google_drive: GoogleDriveConnector,
-    info: Dict[str, Any],
-    parent_id: str,
-    shared_user_list: List[str],
-) -> GSheetFile:
-
-    gsheet = google_drive.get_gsheet(info["name"], parent_id, shared_user_list)
-    list_worksheets = [
-        WorkSheetFile(NAME=worksheet["name"], HEADERS=worksheet["headers"])
-        for _, worksheet in info["worksheets"].items()
-    ]
-    return GSheetFile(
-        NAME=info["name"],
-        MIMETYPE=gsheet.get("mimeType", ""),
-        ID=gsheet.get("id", ""),
-        WORKSHEETS=list_worksheets,
-    )
-
-
-def init_gsheet_detail_file(
-    google_drive: GoogleDriveConnector, info: Dict[str, Any], parent_id: str, user_share: List[str]
-) -> GSheetDetailFile:
-
-    gsheet = google_drive.get_gsheet(info["name"], parent_id, user_share)
-    return GSheetDetailFile(
-        NAME=info["name"],
-        MIMETYPE=gsheet.get("mimeType", ""),
-        ID=gsheet.get("id", ""),
-        HEADERS=info["headers"],
-    )
 
 
 def run(payload: Dict[str, Any]) -> None:
@@ -95,42 +47,30 @@ def run(payload: Dict[str, Any]) -> None:
     if not event:
         return
 
-    # Init Google Drive connector and folders
-    google_drive = GoogleDriveConnector()
-    folder = google_drive.get_gdrive_folder(GDRIVE_MAIN_DIRECTORY_NAME, USER_SHARE)
-
-    # Init Google sheets
-    gsheet_summary_file = init_gsheet_file(
-        google_drive, GDRIVE_SUMMARY_SPREADSHEET, folder["id"], USER_SHARE
-    )
-    gsheet_details_file = init_gsheet_detail_file(
-        google_drive, GSHEET_DETAILS_SPREADSHEET, folder["id"], USER_SHARE
-    )
-
-    # Init Google sheet connector and worksheets
-    gsheet = GSheetConnector(google_drive.credentials, gsheet_summary_file, gsheet_details_file)
-
-    # Init GitHubUser
-    student_user = init_github_user_from_github_event(payload)
-    if not isinstance(student_user, GitHubUser):
+    # Init User
+    user = init_github_user_from_github_event(payload)
+    if not isinstance(user, User):
         # Logging
         return
 
-    # Send user on Google Sheet
-    gsheet.add_new_user_on_sheet(student_user)
+    sql_client = SQLAlchemyConnector()
+
+    sql_client.add_new_user(user)
 
     # Check valid repo
-    student_github_connector = get_student_github_connector(student_user, payload)
-    if not student_github_connector:
-        gsheet.add_new_repo_valid_result(
-            student_user,
+    user_github_connector = get_user_github_connector(user, payload)
+    if not user_github_connector:
+        sql_client.add_new_repository_validation(
+            user,
             False,
-            "[ERROR]: cannot get the student github repository.",
+            payload,
+            event,
+            "[ERROR]: cannot get the user github repository.",
         )
-        logging.error("[ERROR]: cannot get the student github repository.")
+        logging.error("[ERROR]: cannot get the user github repository.")
         return
 
     logging.info(f'Begin process: "{event}"...')
     # Run the process
-    process[event](student_github_connector, gsheet, payload)
+    process[event](user_github_connector, sql_client, payload, event)
     logging.info(f'End of process: "{event}".')

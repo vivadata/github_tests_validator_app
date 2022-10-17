@@ -114,19 +114,10 @@ resource "google_cloud_run_service" "github_test_validator_app" {
                     }
                 }
                 env {
-                    name = "GDRIVE_MAIN_DIRECTORY_NAME"
+                    name = "SQLALCHEMY_URI"
                     value_from {
                         secret_key_ref {
-                            name = "GDRIVE_MAIN_DIRECTORY_NAME"
-                            key = "latest"
-                        }
-                    }
-                }
-                env {
-                    name = "USER_SHARE"
-                    value_from {
-                        secret_key_ref {
-                            name = "USER_SHARE"
+                            name = "SQLALCHEMY_URI"
                             key = "latest"
                         }
                     }
@@ -210,19 +201,8 @@ resource "google_secret_manager_secret" "GH_TESTS_REPO_NAME" {
     }
   }
 }
-resource "google_secret_manager_secret" "GDRIVE_MAIN_DIRECTORY_NAME" {
-  secret_id = "GDRIVE_MAIN_DIRECTORY_NAME"
-
-  replication {
-    user_managed {
-      replicas {
-        location = "${var.region}"
-      }
-    }
-  }
-}
-resource "google_secret_manager_secret" "USER_SHARE" {
-  secret_id = "USER_SHARE"
+resource "google_secret_manager_secret" "SQLALCHEMY_URI" {
+  secret_id = "SQLALCHEMY_URI"
 
   replication {
     user_managed {
