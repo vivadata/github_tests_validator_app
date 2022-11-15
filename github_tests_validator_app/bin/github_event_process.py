@@ -48,20 +48,20 @@ def run(payload: Dict[str, Any]) -> None:
         return
 
     # Init User
-    user = init_github_user_from_github_event(payload)
-    if not isinstance(user, User):
+    user_data = init_github_user_from_github_event(payload)
+    if not isinstance(user_data, dict):
         # Logging
         return
 
     sql_client = SQLAlchemyConnector()
 
-    sql_client.add_new_user(user)
+    sql_client.add_new_user(user_data)
 
     # Check valid repo
-    user_github_connector = get_user_github_connector(user, payload)
+    user_github_connector = get_user_github_connector(user_data, payload)
     if not user_github_connector:
         sql_client.add_new_repository_validation(
-            user,
+            user_data,
             False,
             payload,
             event,

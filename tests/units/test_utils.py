@@ -33,11 +33,11 @@ def test_get_hast_files(mocker, contents, expected):
     [
         (
             {"sender": {"login": "test", "id": "1234", "url": "url"}},
-            User(organization_or_user="test", id="1234", url="url"),
+            dict(organization_or_user="test", id="1234", url="url"),
         ),
         (
             {"sender": {"login": "", "id": "", "url": ""}},
-            User(organization_or_user="", id="", url=""),
+            dict(organization_or_user="", id="", url=""),
         ),
         ({}, None),
     ],

@@ -18,7 +18,7 @@ echo "$GH_TESTS_REPO_NAME" | gcloud secrets versions add GH_TESTS_REPO_NAME --da
 echo "$SQLALCHEMY_URI" | gcloud secrets versions add SQLALCHEMY_URI --data-file=-
 echo "$LOGGING" | gcloud secrets versions add LOGGING --data-file=-
 set -o history
-gcloud auth configure-docker ${REGION}-docker.pkg.dev
-docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/github_tests_validator_app:latest -f ./docker/Dockerfile .
-docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/github_tests_validator_app:latest
+gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://${REGION}-docker.pkg.dev
+docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/github_tests_validator_app -f ./docker/Dockerfile .
+docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/github_tests_validator_app
 terraform -chdir=examples/cloud_run apply -input=true

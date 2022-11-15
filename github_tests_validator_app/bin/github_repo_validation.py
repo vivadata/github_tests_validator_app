@@ -48,16 +48,18 @@ def get_user_branch(payload: Dict[str, Any], trigger: Union[str, None] = None) -
     return branch
 
 
-def get_user_github_connector(user: User, payload: Dict[str, Any]) -> Union[GitHubConnector, None]:
+def get_user_github_connector(
+    user_data: Dict[str, Any], payload: Dict[str, Any]
+) -> Union[GitHubConnector, None]:
 
-    if not user:
+    if not user_data:
         return None
 
     github_user_branch = get_user_branch(payload)
     if github_user_branch is None:
         return None
 
-    return GitHubConnector(user, payload["repository"]["full_name"], github_user_branch)
+    return GitHubConnector(user_data, payload["repository"]["full_name"], github_user_branch)
 
 
 def compare_folder(
@@ -78,7 +80,7 @@ def compare_folder(
 
 def validate_github_repo(
     user_github_connector: GitHubConnector,
-    gsheet: SQLAlchemyConnector,
+    sql_client: SQLAlchemyConnector,
     payload: Dict[str, Any],
     event: str,
 ) -> None:
@@ -86,7 +88,7 @@ def validate_github_repo(
     logging.info(f"Connecting to repo : {GH_TESTS_REPO_NAME}")
 
     tests_github_connector = GitHubConnector(
-        user=user_github_connector.user,
+        user_data=user_github_connector.user_data,
         repo_name=GH_TESTS_REPO_NAME
         if GH_TESTS_REPO_NAME
         else user_github_connector.repo.parent.full_name,
@@ -97,14 +99,14 @@ def validate_github_repo(
     logging.info(f"Connecting to repo : {user_github_connector.repo.parent.full_name}")
 
     original_github_connector = GitHubConnector(
-        user=user_github_connector.user,
+        user_data=user_github_connector.user_data,
         repo_name=user_github_connector.repo.parent.full_name,
         branch_name="main",
         access_token=GH_PAT,
     )
     if not tests_github_connector:
-        gsheet.add_new_repository_validation(
-            user_github_connector.user,
+        sql_client.add_new_repository_validation(
+            user_github_connector.user_data,
             False,
             payload,
             event,
@@ -113,8 +115,8 @@ def validate_github_repo(
         logging.error("[ERROR]: cannot get the tests github repository.")
         return
     if not original_github_connector:
-        gsheet.add_new_repository_validation(
-            user_github_connector.user,
+        sql_client.add_new_repository_validation(
+            user_github_connector.user_data,
             False,
             payload,
             event,
@@ -131,15 +133,15 @@ def validate_github_repo(
     )
 
     # Add valid repo result on Google Sheet
-    gsheet.add_new_repository_validation(
-        user_github_connector.user,
+    sql_client.add_new_repository_validation(
+        user_github_connector.user_data,
         workflows_havent_changed,
         payload,
         event,
         default_message["valid_repository"]["workflows"][str(workflows_havent_changed)],
     )
-    gsheet.add_new_repository_validation(
-        user_github_connector.user,
+    sql_client.add_new_repository_validation(
+        user_github_connector.user_data,
         tests_havent_changed,
         payload,
         event,

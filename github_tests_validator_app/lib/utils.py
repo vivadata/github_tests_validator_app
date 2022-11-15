@@ -16,7 +16,7 @@ def get_hash_files(contents: List[ContentFile.ContentFile]) -> str:
     return str(hash.hexdigest())
 
 
-def init_github_user_from_github_event(data: Dict[str, Any]) -> Optional[User]:
+def init_github_user_from_github_event(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     if not "sender" in data:
         return None
@@ -24,4 +24,4 @@ def init_github_user_from_github_event(data: Dict[str, Any]) -> Optional[User]:
     login = data["sender"]["login"]
     id = data["sender"]["id"]
     url = data["sender"]["url"]
-    return User(id=id, organization_or_user=login, url=url, created_at=datetime.now())
+    return dict(id=id, organization_or_user=login, url=url, created_at=datetime.now())

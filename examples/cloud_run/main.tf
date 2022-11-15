@@ -22,12 +22,6 @@ provider "google" {
   region      = "${var.region}"
 }
 
-resource "google_project_service" "drive_api_service" {
-  project = "${var.project_id}"
-  service = "drive.googleapis.com"
-  disable_dependent_services = true
-}
-
 resource "google_service_account" "service_account" {
   project = "${var.project_id}"
   account_id   = "github-tests-validator-app"
@@ -61,6 +55,24 @@ resource "google_project_iam_binding" "secret_accessor" {
   ]
 }
 
+resource "google_project_iam_binding" "bigquery_job_user" {
+  project = "${var.project_id}"
+  role    = "roles/bigquery.jobUser"
+
+  members = [
+    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
+  ]
+}
+
+resource "google_project_iam_binding" "bigquery_data_editor" {
+  project = "${var.project_id}"
+  role    = "roles/bigquery.dataEditor"
+
+  members = [
+    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
+  ]
+}
+
 resource "google_artifact_registry_repository" "github_test_validator_app_registry" {
   location      = "${var.region}"
   repository_id = "github-app-registry"
@@ -76,7 +88,7 @@ resource "google_cloud_run_service" "github_test_validator_app" {
             timeout_seconds = 300
             service_account_name = "github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
             containers {
-                image = "${var.region}-docker.pkg.dev/${var.project_id}/github-app-registry/github_tests_validator_app:latest"
+                image = "${var.region}-docker.pkg.dev/${var.project_id}/github-app-registry/github_tests_validator_app"
                 env {
                     name = "GH_APP_ID"
                     value_from {

@@ -13,24 +13,25 @@ from github_tests_validator_app.config import (
     GH_APP_ID,
     GH_APP_KEY,
 )
-from github_tests_validator_app.lib.connectors.sqlalchemy_client import User
 from github_tests_validator_app.lib.utils import get_hash_files
 
 
 class GitHubConnector:
     def __init__(
         self,
-        user: User,
+        user_data: Dict[str, Any],
         repo_name: str,
         branch_name: str,
         access_token: Union[str, None] = None,
     ) -> None:
-        self.user = user
+        self.user_data = user_data
         self.REPO_NAME = repo_name
         self.BRANCH_NAME = branch_name
         self.ACCESS_TOKEN = access_token
 
-        logging.info(f"Connecting to Github with user {self.user.LOGIN} on repo: {repo_name} ...")
+        logging.info(
+            f"Connecting to Github with user {self.user_data['organization_or_user']} on repo: {repo_name} ..."
+        )
         if not access_token:
             self.set_git_integration()
             self.set_access_token(repo_name)
@@ -46,12 +47,16 @@ class GitHubConnector:
 
     def set_access_token(self, repo_name: str) -> None:
         self.ACCESS_TOKEN = self.git_integration.get_access_token(
-            self.git_integration.get_installation(self.user.LOGIN, repo_name).id
+            self.git_integration.get_installation(
+                self.user_data["organization_or_user"], repo_name
+            ).id
         ).token
 
     def get_repo(self, repo_name: str) -> Repository.Repository:
         self.REPO_NAME = repo_name
-        logging.info(f"Connecting to new repo: {repo_name} with user: {self.user.LOGIN} ...")
+        logging.info(
+            f"Connecting to new repo: {repo_name} with user: {self.user_data['organization_or_user']} ..."
+        )
         self.repo = self.connector.get_repo(f"{repo_name}")
         logging.info("Done.")
         return self.repo
@@ -77,7 +82,14 @@ class GitHubConnector:
         return hash
 
     def get_all_artifacts(self) -> Union[requests.models.Response, Any]:
-        url = "/".join([GH_API, self.user.LOGIN, self.REPO_NAME, GH_ALL_ARTIFACT_ENDPOINT])
+        url = "/".join(
+            [
+                GH_API,
+                self.user_data["organization_or_user"],
+                self.REPO_NAME,
+                GH_ALL_ARTIFACT_ENDPOINT,
+            ]
+        )
         headers = self._get_headers()
         response = self._request_data(url, headers=headers)
         return response
@@ -102,7 +114,7 @@ class GitHubConnector:
         url = "/".join(
             [
                 GH_API,
-                self.user.LOGIN,
+                self.user_data["organization_or_user"],
                 self.REPO_NAME,
                 GH_ALL_ARTIFACT_ENDPOINT,
                 artifact_id,

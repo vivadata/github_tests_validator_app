@@ -22,7 +22,7 @@ def get_user_artifact(
         sql_client.add_new_pytest_summary(
             {},
             workflow_run_id,
-            user_github_connector.user,
+            user_github_connector.user_data,
             user_github_connector.REPO_NAME,
             user_github_connector.BRANCH_NAME,
             info="[ERROR]: Cannot find the artifact of Pytest result on GitHub user repository.",
@@ -39,7 +39,7 @@ def get_user_artifact(
         sql_client.add_new_pytest_summary(
             {},
             workflow_run_id,
-            user_github_connector.user,
+            user_github_connector.user_data,
             user_github_connector.REPO_NAME,
             user_github_connector.BRANCH_NAME,
             info="[ERROR]: Cannot read the artifact of Pytest result on GitHub user repository.",
@@ -85,19 +85,19 @@ def send_user_pytest_summaries(
     user_github_connector: GitHubConnector,
     sql_client: SQLAlchemyConnector,
     payload: Dict[str, Any],
-    event: str,
+    _: str,
 ) -> None:
 
     # Get all artifacts
     all_user_artifact = user_github_connector.get_all_artifacts()
     if not all_user_artifact:
-        message = f"[ERROR]: Cannot get all artifact on repository {user_github_connector.REPO_NAME} of user {user_github_connector.user.LOGIN}."
+        message = f"[ERROR]: Cannot get all artifact on repository {user_github_connector.REPO_NAME} of user {user_github_connector.organization_or_user}."
         if all_user_artifact["total_count"] == 0:
-            message = f"[ERROR]: No artifact on repository {user_github_connector.REPO_NAME} of user {user_github_connector.user.LOGIN}."
+            message = f"[ERROR]: No artifact on repository {user_github_connector.REPO_NAME} of user {user_github_connector.organization_or_user}."
         sql_client.add_new_pytest_summary(
             {},
             payload["workflow_job"]["run_id"],
-            user_github_connector.user,
+            user_github_connector.user_data,
             user_github_connector.REPO_NAME,
             user_github_connector.BRANCH_NAME,
             info=message,
@@ -114,7 +114,7 @@ def send_user_pytest_summaries(
     sql_client.add_new_pytest_summary(
         artifact,
         payload["workflow_job"]["run_id"],
-        user_github_connector.user,
+        user_github_connector.user_data,
         user_github_connector.REPO_NAME,
         user_github_connector.BRANCH_NAME,
         info="Result of user tests",
@@ -124,7 +124,6 @@ def send_user_pytest_summaries(
     pytest_summaries = parsing_pytest_summaries(artifact["tests"])
     # Send new detail results to Google Sheet
     sql_client.add_new_pytest_detail(
-        user=user_github_connector.user,
         repository=user_github_connector.REPO_NAME,
         branch=user_github_connector.BRANCH_NAME,
         results=pytest_summaries,

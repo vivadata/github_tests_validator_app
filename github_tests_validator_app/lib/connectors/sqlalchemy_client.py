@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 
+import json
 import operator
 from datetime import datetime
 from functools import reduce
@@ -48,9 +49,9 @@ class WorkflowRunDetail(SQLModel, table=True):
     branch: str
     script_name: str
     outcome: str
-    setup: Dict[str, Any] = Field(sa_column=Column(JSON), default={})
-    call: Dict[str, Any] = Field(sa_column=Column(JSON), default={})
-    teardown: Dict[str, Any] = Field(sa_column=Column(JSON), default={})
+    setup: str = Field(default="{}")
+    call: str = Field(default="{}")
+    teardown: str = Field(default="{}")
 
     workflow_run_id: int = Field(foreign_key="workflow_run.id")
 
@@ -74,20 +75,26 @@ class SQLAlchemyConnector:
         self.engine = create_engine(SQLALCHEMY_URI)
         SQLModel.metadata.create_all(self.engine)
 
-    def add_new_user(self, user: User) -> None:
+    def add_new_user(self, user_data: Dict[str, Any]) -> None:
+        user = User(**user_data)
         with Session(self.engine) as session:
             session.add(user)
             session.commit()
 
     def add_new_repository_validation(
-        self, user: User, result: bool, payload: Dict[str, Any], event: str, info: str = ""
+        self,
+        user_data: Dict[str, Any],
+        result: bool,
+        payload: Dict[str, Any],
+        event: str,
+        info: str = "",
     ) -> None:
         repository_validation = RepositoryValidation(
             repository=payload["repository"]["full_name"],
             branch=reduce(operator.getitem, commit_ref_path[event], payload),
             created_at=datetime.now(),
-            organization_or_user=user.organization_or_user,
-            user_id=user.id,
+            organization_or_user=user_data["organization_or_user"],
+            user_id=user_data["id"],
             is_valid=result,
             info=info,
         )
@@ -99,15 +106,15 @@ class SQLAlchemyConnector:
         self,
         artifact: Dict[str, Any],
         workflow_run_id: int,
-        user: User,
+        user_data: Dict[str, Any],
         repository: str,
         branch: str,
         info: str,
     ) -> None:
         pytest_summary = WorkflowRun(
             id=workflow_run_id,
-            organization_or_user=user.organization_or_user,
-            user_id=user.id,
+            organization_or_user=user_data["organization_or_user"],
+            user_id=user_data["id"],
             repository=repository,
             branch=branch,
             duration=artifact.get("duration", None),
@@ -122,7 +129,6 @@ class SQLAlchemyConnector:
 
     def add_new_pytest_detail(
         self,
-        user: User,
         repository: str,
         branch: str,
         results: List[Dict[str, Any]],
@@ -131,7 +137,16 @@ class SQLAlchemyConnector:
         with Session(self.engine) as session:
             for test in results:
                 pytest_detail = WorkflowRunDetail(
-                    repository=repository, branch=branch, workflow_run_id=workflow_run_id, **test
+                    repository=repository,
+                    branch=branch,
+                    workflow_run_id=workflow_run_id,
+                    file_path=test["file_path"],
+                    test_name=test["test_name"],
+                    script_name=test["script_name"],
+                    outcome=test["outcome"],
+                    setup=json.dumps(test["setup"]),
+                    call=json.dumps(test["call"]),
+                    teardown=json.dumps(test["teardown"]),
                 )
                 session.add(pytest_detail)
             session.commit()

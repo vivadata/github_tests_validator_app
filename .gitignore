@@ -21,6 +21,7 @@ Icon
 .terraform/
 terraform.tfstate
 terraform.tfstate.backup
+terraform.tfstate.*.backup
 .terraform.lock.hcl
 
 # Files that might appear in the root of a volume

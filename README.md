@@ -65,8 +65,7 @@ With Cloud Run, you have an example terraform configuration [here](https://githu
 But you can deploy the application on many Serverless Container services on any cloud by making sure that :
 - The secrets defined in the `.env` file are available for the container at runtime as environment variables
 - The container can receive HTTP requests
-- The container can use a GCP service account to login with the [Python Google Auth client](https://google-auth.readthedocs.io/en/master/)
-- The service account is linked to a GCP Project which has the Google Drive API enabled
+- The container can login to any data warehouse with a SQLAlchemy Connection URI : [Bigquery](https://googleapis.dev/python/sqlalchemy-bigquery/latest/README.html#usage), [Snowflake](https://docs.snowflake.com/en/user-guide/sqlalchemy.html#connection-parameters), [Redshift](https://aws.amazon.com/fr/blogs/big-data/use-the-amazon-redshift-sqlalchemy-dialect-to-interact-with-amazon-redshift/) 
 
 ## Environment variables details
 
