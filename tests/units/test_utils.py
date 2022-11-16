@@ -2,7 +2,7 @@ from unittest.mock import PropertyMock
 
 import pytest
 from github import ContentFile
-from github_tests_validator_app.lib.models.users import GitHubUser
+from github_tests_validator_app.lib.connectors.sqlalchemy_client import User
 from github_tests_validator_app.lib.utils import get_hash_files, init_github_user_from_github_event
 
 
@@ -32,12 +32,12 @@ def test_get_hast_files(mocker, contents, expected):
     "contents,expected",
     [
         (
-            {"repository": {"owner": {"login": "test", "id": "1234", "url": "url"}}},
-            GitHubUser(LOGIN="test", ID="1234", URL="url"),
+            {"sender": {"login": "test", "id": "1234", "url": "url"}},
+            dict(organization_or_user="test", id="1234", url="url"),
         ),
         (
-            {"repository": {"owner": {"login": "", "id": "", "url": ""}}},
-            GitHubUser(LOGIN="", ID="", URL=""),
+            {"sender": {"login": "", "id": "", "url": ""}},
+            dict(organization_or_user="", id="", url=""),
         ),
         ({}, None),
     ],
@@ -45,9 +45,9 @@ def test_get_hast_files(mocker, contents, expected):
 def test_init_github_user_from_github_event(contents, expected):
     github_user = init_github_user_from_github_event(contents)
     assert isinstance(github_user, type(expected))
-    if isinstance(github_user, GitHubUser):
+    if isinstance(github_user, User):
         assert (
-            github_user.LOGIN == expected.LOGIN
-            and github_user.ID == expected.ID
-            and github_user.URL == expected.URL
+            github_user.organization_or_user == expected.organization_or_user
+            and github_user.id == expected.id
+            and github_user.url == expected.url
         )

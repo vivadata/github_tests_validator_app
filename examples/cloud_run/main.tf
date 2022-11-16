@@ -8,6 +8,11 @@ variable "region" {
     description = "GCP region where resources will be deployed"
 }
 
+variable "docker_image" {
+    type        = string
+    description = "Docker reference of the image used by Cloud Run"
+}
+
 terraform {
   required_providers {
     google = {
@@ -20,12 +25,6 @@ terraform {
 provider "google" {
   project     = "${var.project_id}"
   region      = "${var.region}"
-}
-
-resource "google_project_service" "drive_api_service" {
-  project = "${var.project_id}"
-  service = "drive.googleapis.com"
-  disable_dependent_services = true
 }
 
 resource "google_service_account" "service_account" {
@@ -61,6 +60,24 @@ resource "google_project_iam_binding" "secret_accessor" {
   ]
 }
 
+resource "google_project_iam_binding" "bigquery_job_user" {
+  project = "${var.project_id}"
+  role    = "roles/bigquery.jobUser"
+
+  members = [
+    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
+  ]
+}
+
+resource "google_project_iam_binding" "bigquery_data_editor" {
+  project = "${var.project_id}"
+  role    = "roles/bigquery.dataEditor"
+
+  members = [
+    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
+  ]
+}
+
 resource "google_artifact_registry_repository" "github_test_validator_app_registry" {
   location      = "${var.region}"
   repository_id = "github-app-registry"
@@ -76,7 +93,7 @@ resource "google_cloud_run_service" "github_test_validator_app" {
             timeout_seconds = 300
             service_account_name = "github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
             containers {
-                image = "${var.region}-docker.pkg.dev/${var.project_id}/github-app-registry/github_tests_validator_app:latest"
+                image = "${var.docker_image}"
                 env {
                     name = "GH_APP_ID"
                     value_from {
@@ -114,19 +131,10 @@ resource "google_cloud_run_service" "github_test_validator_app" {
                     }
                 }
                 env {
-                    name = "GDRIVE_MAIN_DIRECTORY_NAME"
+                    name = "SQLALCHEMY_URI"
                     value_from {
                         secret_key_ref {
-                            name = "GDRIVE_MAIN_DIRECTORY_NAME"
-                            key = "latest"
-                        }
-                    }
-                }
-                env {
-                    name = "USER_SHARE"
-                    value_from {
-                        secret_key_ref {
-                            name = "USER_SHARE"
+                            name = "SQLALCHEMY_URI"
                             key = "latest"
                         }
                     }
@@ -210,19 +218,8 @@ resource "google_secret_manager_secret" "GH_TESTS_REPO_NAME" {
     }
   }
 }
-resource "google_secret_manager_secret" "GDRIVE_MAIN_DIRECTORY_NAME" {
-  secret_id = "GDRIVE_MAIN_DIRECTORY_NAME"
-
-  replication {
-    user_managed {
-      replicas {
-        location = "${var.region}"
-      }
-    }
-  }
-}
-resource "google_secret_manager_secret" "USER_SHARE" {
-  secret_id = "USER_SHARE"
+resource "google_secret_manager_secret" "SQLALCHEMY_URI" {
+  secret_id = "SQLALCHEMY_URI"
 
   replication {
     user_managed {

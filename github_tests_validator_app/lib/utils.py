@@ -1,13 +1,10 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional
 
 import hashlib
-import logging
 from datetime import datetime
 
 from github import ContentFile
-from github_tests_validator_app.config import DATE_FORMAT
-from github_tests_validator_app.lib.connectors.google_sheet import GSheetConnector
-from github_tests_validator_app.lib.models.users import GitHubUser
+from github_tests_validator_app.lib.connectors.sqlalchemy_client import User
 
 
 def get_hash_files(contents: List[ContentFile.ContentFile]) -> str:
@@ -19,12 +16,12 @@ def get_hash_files(contents: List[ContentFile.ContentFile]) -> str:
     return str(hash.hexdigest())
 
 
-def init_github_user_from_github_event(data: Dict[str, Any]) -> Union[GitHubUser, None]:
+def init_github_user_from_github_event(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
-    if not "repository" in data or not "owner" in data["repository"]:
+    if not "sender" in data:
         return None
 
-    login = data["repository"]["owner"].get("login", None)
-    id = data["repository"]["owner"].get("id", None)
-    url = data["repository"]["owner"].get("url", None)
-    return GitHubUser(LOGIN=login, ID=id, URL=url, CREATED_AT=datetime.now().strftime(DATE_FORMAT))
+    login = data["sender"]["login"]
+    id = data["sender"]["id"]
+    url = data["sender"]["url"]
+    return dict(id=id, organization_or_user=login, url=url, created_at=datetime.now())

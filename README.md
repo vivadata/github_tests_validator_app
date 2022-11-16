@@ -65,16 +65,14 @@ With Cloud Run, you have an example terraform configuration [here](https://githu
 But you can deploy the application on many Serverless Container services on any cloud by making sure that :
 - The secrets defined in the `.env` file are available for the container at runtime as environment variables
 - The container can receive HTTP requests
-- The container can use a GCP service account to login with the [Python Google Auth client](https://google-auth.readthedocs.io/en/master/)
-- The service account is linked to a GCP Project which has the Google Drive API enabled
+- The container can login to any data warehouse with a SQLAlchemy Connection URI : [Bigquery](https://googleapis.dev/python/sqlalchemy-bigquery/latest/README.html#usage), [Snowflake](https://docs.snowflake.com/en/user-guide/sqlalchemy.html#connection-parameters), [Redshift](https://aws.amazon.com/fr/blogs/big-data/use-the-amazon-redshift-sqlalchemy-dialect-to-interact-with-amazon-redshift/) 
 
 ## Environment variables details
 
 - GH_APP_ID : Auto-generated ID of the GitHub App you created during the [`Prerequisites`](#prerequisites) step.
 - GH_APP_KEY : Private Key of the GitHub App you created during the [`Prerequisites`](#prerequisites) step.
 - GH_PAT : GitHub personal access token [you must create](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) that has access to the GitHub repository containing the tests and the original repository which was forked (both could be the same repository).
-- GDRIVE_MAIN_DIRECTORY_NAME : Name of the Google Drive Folder where you want the stats to be sent.
-- USER_SHARE : Comma-separated list of emails that have access to this Google Drive Folder.
+- SQLALCHEMY_URI : Database URI with [SQLAlchemy format](https://docs.sqlalchemy.org/en/14/core/engines.html#database-urls)
 - LOGGING : "LOCAL" if you are deploying locally, "GCP" if you are deploying on Google Cloud Run.
 - GH_TESTS_REPO_NAME : (Optional, only if you are using a git submodule for the tests folder) Name of the repository containing the tests (could be convenient if you have a repository with the exercices, and another one with the solutions and you want to have the same tests in both repositories by providing a submodule defined in a third repository).
 
