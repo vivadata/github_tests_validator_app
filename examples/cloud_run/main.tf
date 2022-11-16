@@ -8,6 +8,11 @@ variable "region" {
     description = "GCP region where resources will be deployed"
 }
 
+variable "docker_image" {
+    type        = string
+    description = "Docker reference of the image used by Cloud Run"
+}
+
 terraform {
   required_providers {
     google = {
@@ -88,7 +93,7 @@ resource "google_cloud_run_service" "github_test_validator_app" {
             timeout_seconds = 300
             service_account_name = "github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
             containers {
-                image = "${var.region}-docker.pkg.dev/${var.project_id}/github-app-registry/github_tests_validator_app"
+                image = "${var.docker_image}"
                 env {
                     name = "GH_APP_ID"
                     value_from {

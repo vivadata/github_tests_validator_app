@@ -47,16 +47,14 @@ class GitHubConnector:
 
     def set_access_token(self, repo_name: str) -> None:
         self.ACCESS_TOKEN = self.git_integration.get_access_token(
-            self.git_integration.get_installation(
-                self.user_data["organization_or_user"], repo_name
-            ).id
+            installation_id=self.git_integration.get_installation(
+                repo_name.split("/")[0], repo_name.split("/")[1]
+            ).id,
+            user_id=self.user_data["id"],
         ).token
 
     def get_repo(self, repo_name: str) -> Repository.Repository:
         self.REPO_NAME = repo_name
-        logging.info(
-            f"Connecting to new repo: {repo_name} with user: {self.user_data['organization_or_user']} ..."
-        )
         self.repo = self.connector.get_repo(f"{repo_name}")
         logging.info("Done.")
         return self.repo
