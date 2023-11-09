@@ -17,7 +17,7 @@ WORKDIR /home/docker_user/workspace
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
-ENV PATH="/home/docker_user/.local/bin:$PATH
+ENV PATH="/home/docker_user/.local/bin:$PATH"
 
 COPY pyproject.toml ./
 COPY poetry.lock ./
