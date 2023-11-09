@@ -47,6 +47,7 @@ jobs:
       id: scan
       with:
         image: "ghcr.io/artefactory/github_tests_validator_app:${{ steps.tag.outputs.tag_name }}"
+        acs-report-enable: true
 
     - name: upload Anchore scan SARIF report
       if: success() || failure()
