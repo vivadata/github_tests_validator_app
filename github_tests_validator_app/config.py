@@ -35,11 +35,12 @@ commit_ref_path: Dict[str, List[str]] = {
 GH_APP_ID = cast(str, os.getenv("GH_APP_ID", "")).replace("\r\n", "").replace("\r", "")
 GH_APP_KEY = cast(str, os.getenv("GH_APP_KEY", ""))
 GH_PAT = cast(str, os.getenv("GH_PAT", "")).replace("\r\n", "").replace("\r", "")
-SQLALCHEMY_URI = cast(str, os.getenv("SQLALCHEMY_URI", "")).replace("\r\n", "").replace("\r", "")
+
+SQLALCHEMY_URI = cast(str, os.getenv("SQLALCHEMY_URI", "")).replace("\r\n", "").replace("\r", "").replace('"', '')
 GH_TESTS_REPO_NAME = (
     cast(str, os.getenv("GH_TESTS_REPO_NAME", "")).replace("\r\n", "").replace("\r", "")
 )
-GH_TESTS_FOLDER_NAME = "tests"
+GH_TESTS_FOLDER_NAME = "validation_tests"
 GH_WORKFLOWS_FOLDER_NAME = ".github/workflows"
 GH_API = "https://api.github.com/repos"
 GH_ALL_ARTIFACT_ENDPOINT = "actions/artifacts"
@@ -48,11 +49,11 @@ GH_ALL_ARTIFACT_ENDPOINT = "actions/artifacts"
 default_message: Dict[str, Dict[str, Dict[str, str]]] = {
     "valid_repository": {
         "tests": {
-            "True": "Your folder `Test` is valid",
-            "False": "Your folder `Test` has been modified and is no longer valid.",
+            "True": "All tests in the `validation_tests` folder passed successfully!",
+            "False": "Some tests in the `validation_tests` folder failed:\n{failed_tests_summary}",
         },
         "workflows": {
-            "True": "Your folder `.github/workflows` is valid",
+            "True": "Your folder `.github/workflows` is valid.",
             "False": "Your folder `.github/workflows` has been modified and is no longer valid.",
         },
     },
