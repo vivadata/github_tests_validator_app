@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Union
 
 import io
 import json
+import time
 import logging
 import zipfile
 
@@ -104,21 +105,28 @@ class GitHubConnector:
         return hash_value
 
 
-
-
     def get_all_artifacts(self) -> Union[requests.models.Response, Any]:
         url = f"https://api.github.com/repos/{self.REPO_NAME}/actions/artifacts"
         headers = self._get_headers()
-        try:
-            response = self._request_data(url, headers=headers)
-            logging.info(f"Artifacts response: {response} from {url}")
-            return response
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
-                logging.error(f"No artifacts found for the repository: {self.REPO_NAME}")
-                return None
-            else:
-                raise e
+        max_retries = 3
+        delay = 5
+        for attempt in range(max_retries):
+            try:
+                response = self._request_data(url, headers=headers)
+                logging.info(f"Artifacts response: {response} from {url}")
+                if response and response.get("artifacts"):
+                    logging.info(f"Artifacts fetched successfully on attempt {attempt+1}: {response}")
+                    return response
+                logging.warning(f"No artifacts found on attempt {attempt+1}/{max_retries}. Retrying in {delay}s...")
+                time.sleep(delay)
+                return response
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 404:
+                    logging.error(f"No artifacts found for the repository: {self.REPO_NAME}")
+                    return None
+                else:
+                    raise e
+
 
     def get_artifact_info_from_artifacts_with_worflow_run_id(
         self, artifacts: List[Dict[str, Any]], worflow_run_id: int
@@ -128,11 +136,13 @@ class GitHubConnector:
                 return artifact
         return None
 
+
     def get_artifact_from_format_zip_bytes(self, artifact_content: bytes) -> Any:
         z = zipfile.ZipFile(io.BytesIO(artifact_content))
         f = z.read(z.namelist()[0])
         decode = f.decode("utf-8")
         return json.loads(decode)
+
 
     def get_artifact(self, artifact_info: Dict[str, Any]) -> Union[requests.models.Response, Any]:
         artifact_id = str(artifact_info["id"])
@@ -152,6 +162,7 @@ class GitHubConnector:
         logging.info(f"Artifact response: {response}")
         return response
 
+
     def _get_headers(self) -> Dict[str, str]:
         if not self.ACCESS_TOKEN:
             self.set_access_token(self.REPO_NAME)
@@ -160,6 +171,7 @@ class GitHubConnector:
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {self.ACCESS_TOKEN}",
         }
+
 
     def _request_data(
         self,
@@ -173,6 +185,7 @@ class GitHubConnector:
         if dict_format:
             return response.json()
         return response
+    
     
     def get_tests_results_json(self) -> Union[Dict[str, Any], None]:
         response = self.get_all_artifacts()
