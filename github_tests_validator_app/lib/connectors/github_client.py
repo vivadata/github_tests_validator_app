@@ -150,7 +150,6 @@ class GitHubConnector:
         url = "/".join(
             [
                 GH_API,
-                self.user_data["organization_or_user"],
                 self.REPO_NAME,
                 GH_ALL_ARTIFACT_ENDPOINT,
                 artifact_id,

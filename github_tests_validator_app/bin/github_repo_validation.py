@@ -11,6 +11,7 @@ from github_tests_validator_app.config import (
     commit_ref_path,
     default_message,
 )
+from github_tests_validator_app.lib.utils import pull_requested_test_results
 from github_tests_validator_app.lib.connectors.github_client import GitHubConnector
 from github_tests_validator_app.lib.connectors.sqlalchemy_client import SQLAlchemyConnector, User
 
@@ -25,10 +26,6 @@ def get_event(payload: Dict[str, Any]) -> str:
 def get_user_branch(payload: Dict[str, Any], trigger: Union[str, None] = None) -> Any:
     trigger = get_event(payload) if not trigger else trigger
     if not trigger:
-        # Log error
-        # FIXME
-        # Archive the payload
-        # FIXME
         logging.error("Couldn't find the user branch, maybe the trigger is not managed")
         return None
 
@@ -87,29 +84,8 @@ def validate_github_repo(
     payload: Dict[str, Any],
     event: str,
 ) -> None:
-    
-    # Fetch the test results JSON from GitHub Actions artifact
-    tests_results_json = user_github_connector.get_tests_results_json()
-    if tests_results_json is None:
-        logging.error("Validation failed due to missing or invalid test results artifact.")
-        tests_passed = False
-        failed_tests_summary = "No test results found."
-    else:
-        # Determine if tests have failed and prepare a summary
-        tests_failed = tests_results_json.get("tests_failed", 0)
-        tests_passed = tests_failed == 0
-        failed_tests_summary = ""
-        if tests_failed > 0:
-            failed_tests = tests_results_json.get("tests", [])
-            for test in failed_tests:
-                if test.get("outcome") == "failed":
-                    failed_tests_summary += (
-                        f"- Test: {test.get('nodeid')} failed with message: "
-                        f"{test.get('call', {}).get('crash', {}).get('message', 'No message')}\n"
-                    )
 
-        
-    logging.info(f"Connecting to TEST repo : {GH_TESTS_REPO_NAME}")
+    logging.info(f"Connecting to TESTS repo : {GH_TESTS_REPO_NAME}")
 
     if user_github_connector.repo.parent:
         original_repo_name = user_github_connector.repo.parent.full_name
@@ -159,12 +135,40 @@ def validate_github_repo(
     workflows_havent_changed = compare_folder(
         user_github_connector, original_github_connector, GH_WORKFLOWS_FOLDER_NAME
     )
-    # tests_havent_changed = compare_folder(
-    #     user_github_connector, tests_github_connector, GH_TESTS_FOLDER_NAME
-    # ) #TODO: Uncomment this line to enable tests FOLDER validation
-    tests_havent_changed = tests_passed
 
-    # Add valid repo result on Google Sheet
+    tests_havent_changed = compare_folder(
+        user_github_connector, tests_github_connector, GH_TESTS_FOLDER_NAME
+    )
+
+    tests_conclusion = "success" if tests_havent_changed else "failure"
+    tests_message = default_message["valid_repository"]["tests"][str(tests_havent_changed)]
+
+    workflows_conclusion = "success" if workflows_havent_changed else "failure"
+    workflows_message = default_message["valid_repository"]["workflows"][
+        str(workflows_havent_changed)
+    ]
+
+    # Fetch the test results JSON from GitHub Actions artifact
+    pytests_results_json = user_github_connector.get_tests_results_json()
+
+    if pytests_results_json is None:
+        logging.error("Validation failed due to missing or invalid test results artifact.")
+        pytest_result_message = "No test results found."
+        pytest_result_conclusion = "faillure"
+    else:
+        failed_tests = pull_requested_test_results(
+            tests_results_json=pytests_results_json,
+            payload=payload,
+            github_event=event,
+            user_github_connector=user_github_connector
+        )
+        logging.info(f"failed_test : {failed_tests[1]}")
+        pytest_result_conclusion = "failure" if failed_tests[1] > 0 else "success"
+        logging.info(f"pytest_result_conclusion 01 = {pytest_result_conclusion}")
+    
+    logging.info(f"pytest_result_conclusion = {pytest_result_conclusion}")
+
+
     sql_client.add_new_repository_validation(
         user_github_connector.user_data,
         workflows_havent_changed,
@@ -181,58 +185,89 @@ def validate_github_repo(
         default_message["valid_repository"]["tests"][str(tests_havent_changed)],
     )
 
-    tests_conclusion = "success" if tests_havent_changed else "failure"
-    tests_message = default_message["valid_repository"]["tests"][str(tests_havent_changed)]
-    workflows_conclusion = "success" if workflows_havent_changed else "failure"
-    workflows_message = default_message["valid_repository"]["workflows"][
-        str(workflows_havent_changed)
-    ]
-    
     if event == "pull_request":
-        pull_request = user_github_connector.repo.get_pull(number=payload["pull_request"]["number"])
         # Create a Check Run with detailed test results in case of failure
         user_github_connector.repo.create_check_run(
-            name="Validation Tests Result",
+            name="[Integrity] Test Folder Validation",
             head_sha=payload["pull_request"]["head"]["sha"],
             status="completed",
             conclusion=tests_conclusion,
             output={
-                "title": "Validation Tests Result",
+                "title": "Test Folder Validation Result",
                 "summary": tests_message,
-                "text": failed_tests_summary if not tests_havent_changed else "",
             }
         )
         user_github_connector.repo.create_check_run(
-            name="Workflow Validation",
+            name="[Integrity] Workflow Folder Validation",
             head_sha=payload["pull_request"]["head"]["sha"],
             status="completed",
             conclusion=workflows_conclusion,
             output={
-                "title": "Workflow Validation Result",
+                "title": "Workflow Folder Validation Result",
                 "summary": workflows_message,
             }
         )
-        pull_request.create_issue_comment(tests_message)
-        pull_request.create_issue_comment(workflows_message)
+        pytest_result_message = pull_requested_test_results(
+            tests_results_json=pytests_results_json,
+            payload=payload,
+            github_event=event,
+            user_github_connector=user_github_connector
+        )
+        user_github_connector.repo.create_check_run(
+            name="[Pytest] Pytest Result Validation",
+            head_sha=payload["pull_request"]["head"]["sha"],
+            status="completed",
+            conclusion=pytest_result_conclusion,
+            output={
+                "title": "Pytest Validation Result",
+                "summary": pytest_result_message[0],
+            }
+        )
     elif event == "pusher":
+        # Check if there is already an open PR
+        gh_branch = payload["ref"].replace("refs/heads/", "")
+        gh_prs = user_github_connector.repo.get_pulls(
+            state="open",
+            head=f"{user_github_connector.repo.owner.login}:{gh_branch}"
+        )
+        if gh_prs.totalCount > 0:
+            gh_pr = gh_prs[0] # Get first matching PR
+            if gh_pr.head.sha == payload["after"]:
+                return
+            
         user_github_connector.repo.create_check_run(
-            name="Validation Tests Result",
+            name="[Integrity] Test Folder Validation",
             head_sha=payload["after"],
             status="completed",
             conclusion=tests_conclusion,
             output={
-                "title": "Validation Tests Result",
+                "title": "Test Folder Validation Result",
                 "summary": tests_message,
-                "text": failed_tests_summary if not tests_havent_changed else "",
             }
         )
         user_github_connector.repo.create_check_run(
-            name="Workflow Validation",
+            name="[Integrity] Workflow Folder Validation",
             head_sha=payload["after"],
             status="completed",
             conclusion=workflows_conclusion,
             output={
-                "title": "Workflow Validation Result",
+                "title": "Workflow Folder Validation Result",
                 "summary": workflows_message,
+            }
+        )
+        pytest_result_message = pull_requested_test_results(
+            tests_results_json=pytests_results_json,
+            payload=payload,
+            github_event=event,
+            user_github_connector=user_github_connector
+        )
+        user_github_connector.repo.create_check_run(
+            name="[Pytest] Pytest Result Validation",
+            head_sha=payload["after"],
+            status="completed",
+            conclusion=pytest_result_conclusion,
+            output={
+                "title": "Pytest Validation Result",
+                "summary": pytest_result_message[0],
             }
         )

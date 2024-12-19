@@ -49,8 +49,8 @@ GH_ALL_ARTIFACT_ENDPOINT = "actions/artifacts"
 default_message: Dict[str, Dict[str, Dict[str, str]]] = {
     "valid_repository": {
         "tests": {
-            "True": "All tests in the `validation_tests` folder passed successfully!",
-            "False": "Some tests in the `validation_tests` folder failed:\n{failed_tests_summary}",
+            "True": "Your folder `.validation_tests/` is valid.",
+            "False": "Your folder `.validation_tests/` has been modified and is no longer valid.",
         },
         "workflows": {
             "True": "Your folder `.github/workflows` is valid.",
