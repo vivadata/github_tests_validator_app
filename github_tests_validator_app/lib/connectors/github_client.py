@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Union
 
+import os
 import io
 import json
 import time
@@ -113,9 +114,9 @@ class GitHubConnector:
         for attempt in range(max_retries):
             try:
                 response = self._request_data(url, headers=headers)
-                logging.info(f"Artifacts response: {response} from {url}")
+                # logging.info(f"Artifacts response: {response} from {url}")
                 if response and response.get("artifacts"):
-                    logging.info(f"Artifacts fetched successfully on attempt {attempt+1}: {response}")
+                    logging.info(f"Artifacts fetched successfully on attempt {attempt+1}")
                     return response
                 logging.warning(f"No artifacts found on attempt {attempt+1}/{max_retries}. Retrying in {delay}s...")
                 time.sleep(delay)
@@ -163,8 +164,7 @@ class GitHubConnector:
 
 
     def _get_headers(self) -> Dict[str, str]:
-        if not self.ACCESS_TOKEN:
-            self.set_access_token(self.REPO_NAME)
+        self.ACCESS_TOKEN = os.getenv("GH_PAT")
 
         return {
             "Accept": "application/vnd.github+json",

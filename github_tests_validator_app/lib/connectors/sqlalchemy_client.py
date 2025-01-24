@@ -117,7 +117,7 @@ class SQLAlchemyConnector:
         branch: str,
         info: str,
     ) -> None:
-        logging.info(f"Adding new pytest summary: {artifact}")
+        logging.info(f"Adding new pytest summary ...")
         pytest_summary = WorkflowRun(
             id=workflow_run_id,
             organization_or_user=user_data["organization_or_user"],
@@ -147,7 +147,7 @@ class SQLAlchemyConnector:
         results: List[Dict[str, Any]],
         workflow_run_id: int,
     ) -> None:
-        logging.info(f"Adding new pytest details: {results}")
+        logging.info(f"Adding new pytest details...")
         with Session(self.engine) as session:
             try:
                 for test in results:

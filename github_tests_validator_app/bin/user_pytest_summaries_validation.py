@@ -107,7 +107,7 @@ def send_user_pytest_summaries(
 
     # Get user artifact
     artifact = get_user_artifact(user_github_connector, sql_client, all_user_artifact, payload)
-    logging.info(f"User artifact: {artifact}")
+    # logging.info(f"User artifact: {artifact}")
     if not artifact:
         logging.info("[ERROR]: Cannot get user artifact.")
         return
