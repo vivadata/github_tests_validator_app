@@ -114,13 +114,13 @@ class GitHubConnector:
         for attempt in range(max_retries):
             try:
                 response = self._request_data(url, headers=headers)
-                # logging.info(f"Artifacts response: {response} from {url}")
+                logging.info(f"Artifacts response: {response} from {url}")
                 if response and response.get("artifacts"):
                     logging.info(f"Artifacts fetched successfully on attempt {attempt+1}")
                     return response
                 logging.warning(f"No artifacts found on attempt {attempt+1}/{max_retries}. Retrying in {delay}s...")
                 time.sleep(delay)
-                return response
+                # return response
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 404:
                     logging.error(f"No artifacts found for the repository: {self.REPO_NAME}")
@@ -164,7 +164,7 @@ class GitHubConnector:
 
 
     def _get_headers(self) -> Dict[str, str]:
-        self.ACCESS_TOKEN = os.getenv("GH_PAT")
+        # self.ACCESS_TOKEN = os.getenv("GH_PAT")
 
         return {
             "Accept": "application/vnd.github+json",
@@ -179,6 +179,7 @@ class GitHubConnector:
         params: Union[Dict[str, Any], None] = None,
         dict_format: Union[bool, None] = True,
     ) -> Union[requests.models.Response, Any]:
+        logging.info(f"Trying to request {url} with headers {headers} and params {params}")
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         if dict_format:

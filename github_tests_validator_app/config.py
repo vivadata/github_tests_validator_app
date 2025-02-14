@@ -33,14 +33,14 @@ commit_ref_path: Dict[str, List[str]] = {
 
 # GitHub
 GH_APP_ID = cast(str, os.getenv("GH_APP_ID", "")).replace("\r\n", "").replace("\r", "")
-GH_APP_KEY = cast(str, os.getenv("GH_APP_KEY", ""))
+GH_APP_KEY = cast(str, os.getenv("GH_APP_KEY", "").replace("\\n", "\n"))
 GH_PAT = cast(str, os.getenv("GH_PAT", "")).replace("\r\n", "").replace("\r", "")
 
 SQLALCHEMY_URI = cast(str, os.getenv("SQLALCHEMY_URI", "")).replace("\r\n", "").replace("\r", "").replace('"', '')
 GH_TESTS_REPO_NAME = (
     cast(str, os.getenv("GH_TESTS_REPO_NAME", "")).replace("\r\n", "").replace("\r", "")
 )
-GH_TESTS_FOLDER_NAME = "validation_tests"
+GH_TESTS_FOLDER_NAME = "/01-Data-Types-and-Data-Structures/01-Challenges/02-Rugby_Premiership/tests"
 GH_WORKFLOWS_FOLDER_NAME = ".github/workflows"
 GH_API = "https://api.github.com/repos"
 GH_ALL_ARTIFACT_ENDPOINT = "actions/artifacts"

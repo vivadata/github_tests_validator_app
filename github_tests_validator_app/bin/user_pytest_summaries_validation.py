@@ -91,9 +91,9 @@ def send_user_pytest_summaries(
     # Get all artifacts
     all_user_artifact = user_github_connector.get_all_artifacts()
     if not all_user_artifact:
-        message = f"[ERROR]: Cannot get all artifact on repository {user_github_connector.REPO_NAME} of user {user_github_connector.organization_or_user}."
+        message = f"[ERROR]: Cannot get all artifact on repository {user_github_connector.REPO_NAME} of user {user_github_connector.user_data['organization_or_user']}."
         if all_user_artifact["total_count"] == 0:
-            message = f"[ERROR]: No artifact on repository {user_github_connector.REPO_NAME} of user {user_github_connector.organization_or_user}."
+            message = f"[ERROR]: No artifact on repository {user_github_connector.REPO_NAME} of user {user_github_connector.user_data['organization_or_user']}."
         sql_client.add_new_pytest_summary(
             {},
             payload["workflow_job"]["run_id"],

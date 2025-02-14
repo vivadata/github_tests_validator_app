@@ -64,7 +64,7 @@ def pull_requested_test_results(
             pull_request_title = prs[0].title
             logging.info(f"TITLE = {pull_request_title}")
         else:
-            return "No associated pull request found for this branch."
+            return "No associated pull request found for this branch.", 1
     else:
         return "Unsupported event type."
 
@@ -112,7 +112,7 @@ def strip_ansi_escape_codes(text: str) -> str:
     return ansi_escape.sub('', text)
 
 
-def validate_checks_and_assign_token(sha, tokens, user_github_connector, required_checks):
+def validate_and_assign_token(sha, tokens, user_github_connector, required_checks):
     try:
         # Fetch check runs for the given SHA
         check_runs = user_github_connector.repo.get_commit(sha).get_check_runs()

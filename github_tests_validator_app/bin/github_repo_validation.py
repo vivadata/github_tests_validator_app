@@ -60,6 +60,8 @@ def get_user_github_connector(
         return None
 
     github_user_branch = get_user_branch(payload)
+    github_user_branch = "main"
+    logging.info(f"User branch : {github_user_branch}")
     if github_user_branch is None:
         return None
 
@@ -106,14 +108,14 @@ def validate_github_repo(
         repo_name=GH_TESTS_REPO_NAME
         if GH_TESTS_REPO_NAME
         else original_repo_name,
-        branch_name="feat/ci_workflow",
+        branch_name="main",
         access_token=GH_PAT,
     )
     
     original_github_connector = GitHubConnector(
         user_data=user_github_connector.user_data,
         repo_name=original_repo_name,
-        branch_name="feat/ci_workflow",
+        branch_name="main",
         access_token=GH_PAT,
     )
     
@@ -169,6 +171,8 @@ def validate_github_repo(
             github_event=event,
             user_github_connector=user_github_connector
         )
+        logging.info(failed_tests)
+        logging.info(failed_tests[1])
         pytest_result_conclusion = "failure" if failed_tests[1] > 0 else "success"
 
 
