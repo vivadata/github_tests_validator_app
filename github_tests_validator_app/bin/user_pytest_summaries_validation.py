@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Tuple, Union
 import logging
 from datetime import datetime
 
+from github_tests_validator_app.config import (default_message)
+
 from github_tests_validator_app.lib.connectors.github_client import GitHubConnector
 from github_tests_validator_app.lib.connectors.sqlalchemy_client import SQLAlchemyConnector
 
@@ -86,7 +88,7 @@ def send_user_pytest_summaries(
     user_github_connector: GitHubConnector,
     sql_client: SQLAlchemyConnector,
     payload: Dict[str, Any],
-    _: str,
+    event: str,
 ) -> None:
 
     # Get all artifacts
@@ -113,6 +115,21 @@ def send_user_pytest_summaries(
         logging.info("[ERROR]: Cannot get user artifact.")
         return
 
+    tests_havent_changed = [not "differences" in artifact]
+    
+    sql_client.add_new_repository_validation(
+        user_github_connector.user_data,
+        all(tests_havent_changed),
+        payload,
+        event,
+        default_message["valid_repository"]["tests"][str(all(tests_havent_changed))],
+    )
+
+    if not all(tests_havent_changed):
+        logging.info(f"[ERROR] Differences in tests file found: {artifact['differences'].split()[-2]}")
+        logging.info(f"Sending the police to arrest {user_github_connector.user_data['organization_or_user']}")
+        return
+    
     # Send summary user results to Google Sheet
     sql_client.add_new_pytest_summary(
         artifact,

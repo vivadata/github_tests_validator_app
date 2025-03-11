@@ -46,7 +46,7 @@ def run(payload: Dict[str, Any]) -> None:
     event = handle_process(payload)
     if not event:
         return
-
+    # logging.info(f"Payload: {payload}")
     # Init User
     user_data = init_github_user_from_github_event(payload)
     if not isinstance(user_data, dict):

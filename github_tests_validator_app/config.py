@@ -28,7 +28,7 @@ else:
 commit_ref_path: Dict[str, List[str]] = {
     "pull_request": ["pull_request", "head", "ref"],
     "pusher": ["ref"],
-    "workflow_job": [],
+    "workflow_job": ["workflow_job", "head_branch"]
 }
 
 # GitHub

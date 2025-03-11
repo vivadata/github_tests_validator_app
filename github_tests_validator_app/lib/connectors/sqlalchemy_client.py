@@ -85,6 +85,7 @@ class SQLAlchemyConnector:
                 # Use merge to handle insert or update
                 session.merge(user)
                 session.commit()
+                logging.info("User added successfully.")
             except Exception as e:
                 session.rollback()
                 raise e
@@ -97,6 +98,7 @@ class SQLAlchemyConnector:
         event: str,
         info: str = "",
     ) -> None:
+        logging.info(f"Adding new repository validation ...")
         repository_validation = RepositoryValidation(
             repository=payload["repository"]["full_name"],
             branch=reduce(operator.getitem, commit_ref_path[event], payload),
@@ -107,8 +109,14 @@ class SQLAlchemyConnector:
             info=info,
         )
         with Session(self.engine) as session:
-            session.add(repository_validation)
-            session.commit()
+            try:
+                session.add(repository_validation)
+                session.commit()
+                logging.info("Repository validation added successfully.")
+            except Exception as e:
+                session.rollback()
+                logging.error(f"Error adding repository validation: {e}")
+                raise e
 
     def add_new_pytest_summary(
         self,
