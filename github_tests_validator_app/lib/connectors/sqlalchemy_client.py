@@ -33,6 +33,7 @@ class WorkflowRun(SQLModel, table=True):
     total_tests_collected: int
     total_passed_test: int
     total_failed_test: int
+    total_error_test: int
     duration: float
     info: str
 
@@ -46,6 +47,7 @@ class WorkflowRunDetail(SQLModel, table=True):
     created_at: datetime = Field(primary_key=True, default=datetime.now())
     file_path: str = Field(primary_key=True)
     test_name: str = Field(primary_key=True)
+    challenge_name: str 
     repository: str
     branch: str
     script_name: str
@@ -127,7 +129,8 @@ class SQLAlchemyConnector:
             duration=artifact.get("duration", None),
             total_tests_collected=artifact.get("summary", {}).get("collected", None),
             total_passed_test=artifact.get("summary", {}).get("passed", None),
-            total_failed_test=artifact.get("summary", {}).get("failed", None),
+            total_failed_test=artifact.get("summary", {}).get("failed", 0),
+            total_error_test=artifact.get("summary", {}).get("error", 0),
             info=info,
         )
         with Session(self.engine) as session:
@@ -152,12 +155,14 @@ class SQLAlchemyConnector:
             try:
                 for test in results:
                     pytest_detail = WorkflowRunDetail(
+                        created_at=datetime.now(),
                         repository=repository,
                         branch=branch,
                         workflow_run_id=workflow_run_id,
                         file_path=test["file_path"],
                         test_name=test["test_name"],
                         script_name=test["script_name"],
+                        challenge_name=test["challenge_name"],
                         outcome=test["outcome"],
                         setup=json.dumps(test["setup"]),
                         call=json.dumps(test["call"]),

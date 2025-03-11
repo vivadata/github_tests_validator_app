@@ -65,19 +65,20 @@ def parsing_pytest_summaries(results: List[Dict[str, Any]]) -> List[Dict[str, An
 
     pytest_summaries = []
     for test in results:
+        # if not test["outcome"] == "error":
         file_path, script_name, test_name = get_test_information(test["nodeid"])
         pytest_summaries.append(
-            {
+            {   
+                "challenge_name": test["keywords"][-2],
                 "file_path": file_path,
                 "script_name": script_name,
                 "test_name": test_name,
                 "outcome": test["outcome"],
                 "setup": test["setup"],
-                "call": test["call"],
-                "teardown": test["teardown"],
+                "call": test.get("call", {}),
+                "teardown": test.get("teardown", {}),
             }
         )
-
     return pytest_summaries
 
 
@@ -124,7 +125,7 @@ def send_user_pytest_summaries(
 
     # Parsing artifact / challenge results
     pytest_summaries = parsing_pytest_summaries(artifact["tests"])
-    logging.info(f'Tests user artifact: {artifact["tests"]}')
+    # logging.info(f'pytest summaries: {pytest_summaries}')
     # Send new results to Google Sheet
     sql_client.add_new_pytest_detail(
         repository=user_github_connector.REPO_NAME,

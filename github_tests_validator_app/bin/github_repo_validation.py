@@ -11,7 +11,8 @@ from github_tests_validator_app.config import (
     commit_ref_path,
     default_message,
     base_tokens,
-    required_checks
+    required_checks,
+    test_folders
 )
 
 from github_tests_validator_app.lib.utils import (
@@ -84,6 +85,7 @@ def compare_folder(
     solution_hash = solution_repo.get_hash(folder)
     logging.info(f"user_hash = {user_hash}")
     logging.info(f"solution_hash = {solution_hash}")
+    logging.info(f"is valid = {user_hash == solution_hash}")
     return user_hash == solution_hash
 
 
@@ -141,16 +143,21 @@ def validate_github_repo(
         logging.error("[ERROR]: cannot get the original github repository.")
         return
 
+    # tests_folders = tests_github_connector.get_test_folders()
+    # logging.info(f"Tests folders: {tests_folders}")
+
     workflows_havent_changed = compare_folder(
         user_github_connector, original_github_connector, GH_WORKFLOWS_FOLDER_NAME
     )
 
-    tests_havent_changed = compare_folder(
-        user_github_connector, tests_github_connector, GH_TESTS_FOLDER_NAME
-    )
+    tests_havent_changed = [ 
+        compare_folder(
+            user_github_connector, tests_github_connector, folder
+        ) 
+        for folder in test_folders ]
 
-    tests_conclusion = "success" if tests_havent_changed else "failure"
-    tests_message = default_message["valid_repository"]["tests"][str(tests_havent_changed)]
+    tests_conclusion = "success" if all(tests_havent_changed) else "failure"
+    tests_message = default_message["valid_repository"]["tests"][str(all(tests_havent_changed))]
 
     workflows_conclusion = "success" if workflows_havent_changed else "failure"
     workflows_message = default_message["valid_repository"]["workflows"][
@@ -186,10 +193,10 @@ def validate_github_repo(
     
     sql_client.add_new_repository_validation(
         user_github_connector.user_data,
-        tests_havent_changed,
+        all(tests_havent_changed),
         payload,
         event,
-        default_message["valid_repository"]["tests"][str(tests_havent_changed)],
+        default_message["valid_repository"]["tests"][str(all(tests_havent_changed))],
     )
 
 

@@ -105,3 +105,22 @@ required_checks = [
     "[Integrity] Test Folder Validation",
     "[Integrity] Workflow Folder Validation"
 ]
+
+test_folders = [
+    "02-Control-Flow/01-Challenges/02-List_Filtered/tests",
+    "02-Control-Flow/01-Challenges/05-Word_Occurences/tests",
+    "02-Control-Flow/01-Challenges/01-Carousel_Ride/tests",
+    "02-Control-Flow/01-Challenges/09-I_Robot/tests",
+    "02-Control-Flow/01-Challenges/04-Stopwords/tests",
+    "02-Control-Flow/01-Challenges/03-Even_and_Odd/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/01-Candy_Shop/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/02-Rugby_Premiership/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/07-Optional_Password_Generator/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/09-Optional_Morse_Code/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/04-Classroom/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/10-Optional_String_Brain_Teaser/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/06-Remove_List_Duplicates/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/08-Optional_Palindrome/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/05-Dictionary/tests",
+    "01-Data-Types-and-Data-Structures/01-Challenges/03-Shakespeare-In-Love/tests"
+ ]

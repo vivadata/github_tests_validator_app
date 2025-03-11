@@ -16,12 +16,14 @@ def get_hash_files(contents: List[ContentFile.ContentFile]) -> str:
 
     for content in contents:
         if content.type == 'file':
-            file_content = content.decoded_content  # Gets the file's content as bytes
-            logging.info(f"Hashing content for file: {content.path}, Content length: {len(file_content)}")
-            hash.update(file_content)
-        else:
-            logging.info(f"Hashing submodule/directory SHA for: {content.path}, SHA: {content.sha}")
-            hash.update(content.sha.encode())
+            pattern = re.compile(r"^test_.*\.py$")
+            if pattern.match(content.name) or content.name.endswith(".yml"):
+                file_content = content.decoded_content  # Gets the file's content as bytes
+                logging.info(f"Hashing content for file: {content.path}, Content length: {len(file_content)}")
+                hash.update(file_content)
+        # else:
+        #     logging.info(f"Hashing submodule/directory SHA for: {content.path}, SHA: {content.sha}")
+        #     hash.update(content.sha.encode())
 
     hash_value = str(hash.hexdigest())
     logging.info(f"Generated hash value: {hash_value}")
