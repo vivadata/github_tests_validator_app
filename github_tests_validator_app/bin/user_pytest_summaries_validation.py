@@ -115,20 +115,24 @@ def send_user_pytest_summaries(
         logging.info("[ERROR]: Cannot get user artifact.")
         return
 
-    tests_havent_changed = [not "differences" in artifact]
+
+    # Check if workflow detected changes in the tests
+    tests_havent_changed = not "differences" in artifact
     
     sql_client.add_new_repository_validation(
         user_github_connector.user_data,
-        all(tests_havent_changed),
+        tests_havent_changed,
         payload,
         event,
-        default_message["valid_repository"]["tests"][str(all(tests_havent_changed))],
+        default_message["valid_repository"]["tests"][str(tests_havent_changed)],
     )
 
-    if not all(tests_havent_changed):
+    if not tests_havent_changed:
         logging.info(f"[ERROR] Differences in tests file found: {artifact['differences'].split()[-2]}")
         logging.info(f"Sending the police to arrest {user_github_connector.user_data['organization_or_user']}")
         return
+    else:
+        logging.info(f"Tests haven't changed, no need to send the police to arrest {user_github_connector.user_data['organization_or_user']}")
     
     # Send summary user results to Google Sheet
     sql_client.add_new_pytest_summary(
@@ -143,7 +147,7 @@ def send_user_pytest_summaries(
     # Parsing artifact / challenge results
     pytest_summaries = parsing_pytest_summaries(artifact["tests"])
     # logging.info(f'pytest summaries: {pytest_summaries}')
-    # Send new results to Google Sheet
+    # Send new results to Big Query
     sql_client.add_new_pytest_detail(
         repository=user_github_connector.REPO_NAME,
         branch=user_github_connector.BRANCH_NAME,

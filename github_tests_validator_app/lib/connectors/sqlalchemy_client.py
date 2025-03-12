@@ -75,6 +75,7 @@ class RepositoryValidation(SQLModel, table=True):
 
 class SQLAlchemyConnector:
     def __init__(self) -> None:
+        logging.info("Using SQLALCHEMY_URI: %s", SQLALCHEMY_URI)
         self.engine = create_engine(SQLALCHEMY_URI)
         SQLModel.metadata.create_all(self.engine)
 
@@ -101,7 +102,7 @@ class SQLAlchemyConnector:
         logging.info(f"Adding new repository validation ...")
         repository_validation = RepositoryValidation(
             repository=payload["repository"]["full_name"],
-            branch=reduce(operator.getitem, commit_ref_path[event], payload),
+            branch=reduce(operator.getitem, commit_ref_path[event], payload).replace("refs/heads/", ""),
             created_at=datetime.now(),
             organization_or_user=user_data["organization_or_user"],
             user_id=user_data["id"],

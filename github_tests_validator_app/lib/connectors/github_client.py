@@ -164,7 +164,6 @@ class GitHubConnector:
 
 
     def _get_headers(self) -> Dict[str, str]:
-        # self.ACCESS_TOKEN = os.getenv("GH_PAT")
 
         return {
             "Accept": "application/vnd.github+json",
@@ -205,31 +204,3 @@ class GitHubConnector:
                     return None
         logging.error("No suitable artifacts found or unable to fetch artifact.")
         return None
-
-    def get_test_folders(self, start_path: str = ".") -> List[str]:
-        """
-        Retourne la liste des chemins (paths) de tous les dossiers nommés 'tests'
-        à partir du chemin 'start_path' dans la branche self.BRANCH_NAME.
-        """
-        stack = [start_path]
-        test_folders = []
-
-        while stack:
-            current_path = stack.pop()
-            try:
-                contents = self.repo.get_contents(current_path, ref=self.BRANCH_NAME)
-            except UnknownObjectException:
-                # Si le chemin n'existe pas
-                continue
-
-            for item in contents:
-                if item.type == "dir":
-                    # Si c'est un dossier, on vérifie son nom
-                    # item.path ressemble à "01-Data-Types-and-Data-Structures/01-Challenges/.../tests"
-                    if item.name == "tests":
-                        test_folders.append(item.path)
-                    else:
-                        # Si ce n'est pas 'tests', on descend récursivement
-                        stack.append(item.path)
-
-        return test_folders

@@ -37,6 +37,8 @@ GH_APP_KEY = cast(str, os.getenv("GH_APP_KEY", "").replace("\\n", "\n"))
 GH_PAT = cast(str, os.getenv("GH_PAT", "")).replace("\r\n", "").replace("\r", "")
 
 SQLALCHEMY_URI = cast(str, os.getenv("SQLALCHEMY_URI", "")).replace("\r\n", "").replace("\r", "").replace('"', '')
+SQLALCHEMY_URI="sqlite:///./test.db"
+
 GH_TESTS_REPO_NAME = (
     cast(str, os.getenv("GH_TESTS_REPO_NAME", "")).replace("\r\n", "").replace("\r", "")
 )
@@ -49,78 +51,12 @@ GH_ALL_ARTIFACT_ENDPOINT = "actions/artifacts"
 default_message: Dict[str, Dict[str, Dict[str, str]]] = {
     "valid_repository": {
         "tests": {
-            "True": "Your folder `.validation_tests/` is valid.",
-            "False": "Your folder `.validation_tests/` has been modified and is no longer valid.",
+            "True": "tests",
+            "False": "tests",
         },
         "workflows": {
-            "True": "Your folder `.github/workflows` is valid.",
-            "False": "Your folder `.github/workflows` has been modified and is no longer valid.",
+            "True": "workflows",
+            "False": "workflows",
         },
     },
 }
-
-part_map = {
-        "Part 1": [
-            "validation_tests/test_01_git_101.py",
-            "validation_tests/test_02_notebooks_to_scripts.py",
-            "validation_tests/test_03_linting_and_formatting.py",
-            "validation_tests/test_04_continuous_integration.py",
-            "validation_tests/test_05_unit_testing.py",
-            "validation_tests/test_06_code_documentation.py",
-            "validation_tests/test_07_dependencies_and_venv.py"
-            # "validation_tests/test_08_packaging.py"
-        ],
-        "Part 2": [
-            "validation_tests/test_09_ci_cd_pipelines.py",
-            "validation_tests/test_10_monitoring_and_alerting.py",
-            "validation_tests/test_11_logging.py",
-            "validation_tests/test_12_security_testing.py",
-            "validation_tests/test_13_performance_optimization.py"
-        ]
-    }
-
-base_tokens = {
-    "Part 1" : [
-        "FsQyRcFCNNzlUZpZ", "FyxfmqtAc8HCRLpx", "4VPhvLsrhJwfU3ee",
-        "V9D2DaQgesfMs9Fc", "CJCIPgYQud6Io1jD", "mLFjjkXsxbTb0VCw",
-        "9B8rMKEeR0p3gsJD", "i4M9CZuJQiwf8TKL", "JDn5CficECTa4JBN",
-        "AjMJBlYQyA2bxuXg", "NZ2BNJDcUQ8BZYxX", "eb8YEgo8yoTenrVS",
-        "WJbcGDT2Y7VjxNrZ", "oTzPvOupEY1eA3O9", "M0zAppk75VZEWAIx",
-        "HjzUp5L9IzYhRzdj", "A04FC2reSxdIgHaK", "DXM297sx4alfByVx",
-        "1G03TRqIamYRRNTF", "q78NrY9cESJESCBL"
-    ],
-    "Part 2" : [
-        "Kh6MYcXAaQtWjKqn", "Diu0KzPzOU6Reced", "GB8DrumrkguJYDbm",
-        "9Saz9603Gv7fQxh9", "4toXjiNOa2jQmveY", "S798d7fOXpExDtpR",
-        "l3H2IALb5PziNqwZ", "1kaPHmA1I5o6fjyd", "032IKBCVNiWQdRYT",
-        "TL2kMMZL5aK8j6rW", "gPdv1ahPY1Pd8Q9T", "4XdS6r53tJ01vFOa",
-        "afHAgMIzQQI0HyDX", "SmINslEsh2OgAGGu", "RFFR6Z0Fmvsu5poQ",
-        "hTfmdvk9uilnlkIN", "chyPPvztjsZiYgYE", "bxp7NA9uFwCtdtRL",
-        "CzeYlSWdW2PgPpzk", "bcaTLaZQaCZx1zyJ"
-    ]
-}
-
-required_checks = [
-    "[Pytest] Pytest Result Validation",
-    "[Integrity] Test Folder Validation",
-    "[Integrity] Workflow Folder Validation"
-]
-
-test_folders = [
-    "02-Control-Flow/01-Challenges/02-List_Filtered/tests",
-    "02-Control-Flow/01-Challenges/05-Word_Occurences/tests",
-    "02-Control-Flow/01-Challenges/01-Carousel_Ride/tests",
-    "02-Control-Flow/01-Challenges/09-I_Robot/tests",
-    "02-Control-Flow/01-Challenges/04-Stopwords/tests",
-    "02-Control-Flow/01-Challenges/03-Even_and_Odd/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/01-Candy_Shop/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/02-Rugby_Premiership/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/07-Optional_Password_Generator/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/09-Optional_Morse_Code/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/04-Classroom/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/10-Optional_String_Brain_Teaser/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/06-Remove_List_Duplicates/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/08-Optional_Palindrome/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/05-Dictionary/tests",
-    "01-Data-Types-and-Data-Structures/01-Challenges/03-Shakespeare-In-Love/tests"
- ]
