@@ -1,0 +1,101 @@
+name: Validation Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Choose authentication token
+        id: choose_token
+        run: |
+          if [ -n "${{ secrets.MY_PAT }}" ]; then
+            echo "Using MY_PAT"
+            echo "AUTH_TOKEN=${{ secrets.MY_PAT }}" >> $GITHUB_OUTPUT
+          else
+            echo "Using GITHUB_TOKEN"
+            echo "AUTH_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Retrieving reference repo
+        uses: actions/checkout@v4
+        with:
+          repository: 'vivadata/${{ github.event.repository.name }}'
+          token: ${{ steps.choose_token.outputs.AUTH_TOKEN }}
+          path: './reference_repo/'
+          ref: 'main'  
+
+      - name: Compare repos
+        run: |
+          DIFF_OUTPUT=$(diff -r \
+                        --exclude='reference_repo' \
+                        --exclude='__pycache__' \
+                        --exclude='.pytest_cache' \
+                        --exclude='*.pkl' \
+                        --exclude='src' \
+                        --exclude='input' \
+                        --exclude='data' \
+                        --exclude='images' \
+                        --exclude='output' \
+                        --exclude='*.ipynb' \
+                        --exclude='venv' \
+                        --exclude='.git' \
+                        --exclude='.ipynb_checkpoints' \
+                        --exclude='*.md' \
+                        --exclude='*.json' \
+                        . ./reference_repo \
+                        | grep '^diff .*tests/test_.*\.py' || true)
+          
+          if [ -n "$DIFF_OUTPUT" ]; then
+            JSON_OUTPUT=$(echo "$DIFF_OUTPUT" | jq -Rs '{differences: .}')
+            echo "$JSON_OUTPUT" > results.json
+            echo "TESTS_MODIFIED=true" >> $GITHUB_ENV
+            echo "Differences found in test files. Failing the job..."
+            exit 1
+          else
+            echo "TESTS_MODIFIED=false" >> $GITHUB_ENV
+            echo "No differences found in test files."
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install dependencies from requirements.txt
+        run: pip install -r requirements.txt
+
+      - name: Run tests in multiple directories
+        run: |
+          EXITCODE=0
+          COUNTER=0
+          for dir in $(find . -type d -iname "test*"); do
+            echo "Running tests in $dir"
+            cd "$(dirname "$dir")" && pytest -s -vv --json-report --json-report-file='../../../results_'$COUNTER'.json' || EXITCODE=1
+            cd - >/dev/null
+            COUNTER=$((COUNTER + 1))
+          done
+          exit $EXITCODE
+
+      - name: Aggregating test results
+        if: always() && env.TESTS_MODIFIED == 'false'
+        run: |
+          jq -s -f agg.jq results*.json > results.json
+
+      - name: Archive results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-results-logs
+          path: results.json
