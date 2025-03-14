@@ -5,8 +5,6 @@ import logging
 from github import ContentFile
 from github_tests_validator_app.config import (
     GH_PAT,
-    GH_TESTS_FOLDER_NAME,
-    GH_TESTS_REPO_NAME,
     GH_WORKFLOWS_FOLDER_NAME,
     commit_ref_path,
     default_message,
@@ -89,8 +87,6 @@ def validate_github_repo(
     event: str,
 ) -> None:
 
-    logging.info(f"Connecting to TESTS repo : {GH_TESTS_REPO_NAME}")
-
     if user_github_connector.repo.parent:
         original_repo_name = user_github_connector.repo.parent.full_name
         logging.info(f"Connecting to ORIGINAL repo : {original_repo_name}")
@@ -103,7 +99,6 @@ def validate_github_repo(
         user_data=user_github_connector.user_data,
         repo_name=original_repo_name,
         branch_name="main",
-        access_token=GH_PAT,
     )
 
     

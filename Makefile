@@ -148,6 +148,12 @@ clean_build:
 .PHONY: clean
 clean: clean_build clean_docker
 
+
+include .env
+export
+
 .PHONY: deploy_gcp
-deploy_gcp:
-	./examples/cloud_run/deploy.sh
+deploy_gcp: docker
+	@echo Deploying to GCP ...
+	docker tag github_tests_validator_app:latest ${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/github_tests_validator_app:latest
+	docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/github_tests_validator_app:latest

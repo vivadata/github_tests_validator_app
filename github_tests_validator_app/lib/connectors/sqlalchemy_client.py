@@ -75,7 +75,7 @@ class RepositoryValidation(SQLModel, table=True):
 
 class SQLAlchemyConnector:
     def __init__(self) -> None:
-        logging.info("Using SQLALCHEMY_URI: %s", SQLALCHEMY_URI)
+        logging.info("Using SQLALCHEMY_URI: %s", SQLALCHEMY_URI.strip())
         self.engine = create_engine(SQLALCHEMY_URI)
         SQLModel.metadata.create_all(self.engine)
 

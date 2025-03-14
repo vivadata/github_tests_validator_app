@@ -52,7 +52,7 @@ def run(payload: Dict[str, Any]) -> None:
     if not isinstance(user_data, dict):
         # Logging
         return
-
+    logging.info("Connecting to the database...")
     sql_client = SQLAlchemyConnector()
     try:
         sql_client.add_new_user(user_data)
