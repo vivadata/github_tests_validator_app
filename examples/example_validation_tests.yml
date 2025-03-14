@@ -63,6 +63,7 @@ jobs:
           else
             echo "TESTS_MODIFIED=false" >> $GITHUB_ENV
             echo "No differences found in test files."
+            rm -rf ./reference_repo
           fi
 
       - name: Set up Python
