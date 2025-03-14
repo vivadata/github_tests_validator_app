@@ -82,7 +82,7 @@ jobs:
           COUNTER=0
           for dir in $(find . -type d -iname "test*"); do
             echo "Running tests in $dir"
-            cd "$(dirname "$dir")" && pytest -s -vv --json-report --json-report-file='../../../results_'$COUNTER'.json' || EXITCODE=1
+            cd "$(dirname "$dir")" && pytest -s -vv --json-report --json-report-file=$(git rev-parse --show-toplevel)'/results_'$COUNTER'.json' || EXITCODE=1
             cd - >/dev/null
             COUNTER=$((COUNTER + 1))
           done
