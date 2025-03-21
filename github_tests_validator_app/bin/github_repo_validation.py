@@ -85,7 +85,7 @@ def validate_github_repo(
     sql_client: SQLAlchemyConnector,
     payload: Dict[str, Any],
     event: str,
-) -> None:
+) -> Any:
 
     if user_github_connector.repo.parent:
         original_repo_name = user_github_connector.repo.parent.full_name
@@ -133,4 +133,6 @@ def validate_github_repo(
         event,
         workflows_message,
     )
+    
+    return workflows_havent_changed
     

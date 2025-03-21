@@ -7,6 +7,7 @@ from github_tests_validator_app.config import (default_message)
 
 from github_tests_validator_app.lib.connectors.github_client import GitHubConnector
 from github_tests_validator_app.lib.connectors.sqlalchemy_client import SQLAlchemyConnector
+from github_tests_validator_app.bin.github_repo_validation import validate_github_repo
 
 
 def get_user_artifact(
@@ -114,8 +115,21 @@ def send_user_pytest_summaries(
     if not artifact:
         logging.info("[ERROR]: Cannot get user artifact.")
         return
+    
+    # Check if workflow hasn't changed
+    workflow_hasnt_changed = validate_github_repo(
+        user_github_connector,
+        sql_client,
+        payload,
+        event)
 
-
+    if not workflow_hasnt_changed:
+        logging.info(f"[ERROR] Workflow has changed for user {user_github_connector.user_data['organization_or_user']}")
+        logging.info(f"Sending the police to arrest {user_github_connector.user_data['organization_or_user']}")
+        return
+    else:
+        logging.info(f"Workflow hasn't changed, no need to send the police to arrest {user_github_connector.user_data['organization_or_user']}")
+    
     # Check if workflow detected changes in the tests
     tests_havent_changed = not "differences" in artifact
     

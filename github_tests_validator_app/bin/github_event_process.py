@@ -15,7 +15,8 @@ from github_tests_validator_app.lib.utils import init_github_user_from_github_ev
 
 process = {
     "pull_request": validate_github_repo,
-    "pusher": validate_github_repo,
+    # "pusher": validate_github_repo,
+    "pusher": lambda *args: None,
     "workflow_job": send_user_pytest_summaries,
 }
 

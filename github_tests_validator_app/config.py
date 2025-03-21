@@ -19,12 +19,12 @@ if os.getenv("LOGGING", "").replace("\r\n", "").replace("\r", "") == "LOCAL":
 
     if logging.getLogger("uvicorn") and logging.getLogger("uvicorn").handlers:
         logging.getLogger("uvicorn").removeHandler(logging.getLogger("uvicorn").handlers[0])
-    
+
 else:
     logging_client = google.cloud.logging.Client()
     logging_client.get_default_handler()
     logging_client.setup_logging()
-    
+
 
 
 commit_ref_path: Dict[str, List[str]] = {

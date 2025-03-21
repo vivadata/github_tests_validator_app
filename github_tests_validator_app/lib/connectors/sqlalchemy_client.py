@@ -45,6 +45,7 @@ class WorkflowRunDetail(SQLModel, table=True):
     __table_args__ = {"extend_existing": True}
 
     created_at: datetime = Field(primary_key=True, default=datetime.now())
+    organization_or_user: str = Field(primary_key=True)
     file_path: str = Field(primary_key=True)
     test_name: str = Field(primary_key=True)
     challenge_name: str 
@@ -165,6 +166,7 @@ class SQLAlchemyConnector:
                 for test in results:
                     pytest_detail = WorkflowRunDetail(
                         created_at=datetime.now(),
+                        organization_or_user=repository.split("/")[0],
                         repository=repository,
                         branch=branch,
                         workflow_run_id=workflow_run_id,
