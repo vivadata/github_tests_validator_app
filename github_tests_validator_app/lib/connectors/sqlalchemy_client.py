@@ -44,12 +44,12 @@ class WorkflowRunDetail(SQLModel, table=True):
     __tablename__ = "workflow_run_detail"
     __table_args__ = {"extend_existing": True}
 
-    created_at: datetime = Field(primary_key=True, default=datetime.now())
+    created_at: datetime = Field(default=datetime.now())
     organization_or_user: str = Field(primary_key=True)
     file_path: str = Field(primary_key=True)
     test_name: str = Field(primary_key=True)
     challenge_name: str 
-    repository: str
+    repository: str = Field(primary_key=True)
     branch: str
     script_name: str
     outcome: str
@@ -66,10 +66,10 @@ class RepositoryValidation(SQLModel, table=True):
 
     repository: str = Field(primary_key=True)
     branch: str = Field(primary_key=True)
-    created_at: datetime = Field(primary_key=True, default=datetime.now())
+    created_at: datetime = Field(default=datetime.now())
     organization_or_user: str
     is_valid: bool
-    info: str
+    info: str = Field(primary_key=True)
 
     user_id: int = Field(foreign_key="user.id")
 
@@ -112,7 +112,7 @@ class SQLAlchemyConnector:
         )
         with Session(self.engine) as session:
             try:
-                session.add(repository_validation)
+                session.merge(repository_validation)
                 session.commit()
                 logging.info("Repository validation added successfully.")
             except Exception as e:
@@ -145,7 +145,7 @@ class SQLAlchemyConnector:
         )
         with Session(self.engine) as session:
             try:
-                session.add(pytest_summary)
+                session.merge(pytest_summary)
                 session.commit()
                 logging.info("Pytest summary added successfully.")
             except Exception as e:
@@ -179,7 +179,7 @@ class SQLAlchemyConnector:
                         call=json.dumps(test["call"]),
                         teardown=json.dumps(test["teardown"]),
                     )
-                    session.add(pytest_detail)
+                    session.merge(pytest_detail)
                 session.commit()
                 logging.info("Pytest details added successfully.")
             except Exception as e:
