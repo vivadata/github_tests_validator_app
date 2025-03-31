@@ -1,0 +1,14 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - --platform=linux/amd64
+      - '-f'
+      - './docker/Dockerfile'
+      - '-t'
+      - '${_IMAGE_NAME}'
+      - '.'
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_IMAGE_NAME}'
