@@ -77,4 +77,3 @@ def run(payload: Dict[str, Any]) -> None:
     # Run the process
     process[event](user_github_connector, sql_client, payload, event)
     logging.info(f'End of process: "{event}".')
-    logging.info("small change")

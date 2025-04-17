@@ -127,19 +127,6 @@ resource "google_cloud_run_service" "github_test_validator_app" {
   name     = "github-test-validator-app"
   location = var.region
 
-  metadata {
-    annotations = {
-      # Cette annotation change à chaque planification, forçant une nouvelle révision
-      "run.googleapis.com/launch-time" = timestamp()
-    }
-  }
-
-  # metadata {
-  #   annotations = {
-  #     # Par défaut, on définit une map vide
-  #   }
-  # }
-
   template {
     spec {
       timeout_seconds      = 300
