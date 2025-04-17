@@ -1,16 +1,19 @@
 variable "project_id" {
     type    = string
     description = "GCP Project ID"
+    default = "asodtestvalidatorapp-71e1"
 }
 
 variable "region" {
     type        = string
     description = "GCP region where resources will be deployed"
+    default = "europe-west1"
 }
 
 variable "docker_image" {
     type        = string
     description = "Docker reference of the image used by Cloud Run"
+    default = "europe-west1-docker.pkg.dev/asodtestvalidatorapp-71e1/github-app-registry/no_image"
 }
 
 terraform {

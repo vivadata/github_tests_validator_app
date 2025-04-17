@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 
 import json
 import operator
+import logging
 from datetime import datetime
 from functools import reduce
 
@@ -32,6 +33,7 @@ class WorkflowRun(SQLModel, table=True):
     total_tests_collected: int
     total_passed_test: int
     total_failed_test: int
+    total_error_test: int
     duration: float
     info: str
 
@@ -42,10 +44,12 @@ class WorkflowRunDetail(SQLModel, table=True):
     __tablename__ = "workflow_run_detail"
     __table_args__ = {"extend_existing": True}
 
-    created_at: datetime = Field(primary_key=True, default=datetime.now())
+    created_at: datetime = Field(default=datetime.now())
+    organization_or_user: str = Field(primary_key=True)
     file_path: str = Field(primary_key=True)
     test_name: str = Field(primary_key=True)
-    repository: str
+    challenge_name: str 
+    repository: str = Field(primary_key=True)
     branch: str
     script_name: str
     outcome: str
@@ -62,24 +66,31 @@ class RepositoryValidation(SQLModel, table=True):
 
     repository: str = Field(primary_key=True)
     branch: str = Field(primary_key=True)
-    created_at: datetime = Field(primary_key=True, default=datetime.now())
+    created_at: datetime = Field(default=datetime.now())
     organization_or_user: str
     is_valid: bool
-    info: str
+    info: str = Field(primary_key=True)
 
     user_id: int = Field(foreign_key="user.id")
 
 
 class SQLAlchemyConnector:
     def __init__(self) -> None:
+        logging.info("Using SQLALCHEMY_URI: %s", SQLALCHEMY_URI.strip())
         self.engine = create_engine(SQLALCHEMY_URI)
         SQLModel.metadata.create_all(self.engine)
 
     def add_new_user(self, user_data: Dict[str, Any]) -> None:
         user = User(**user_data)
         with Session(self.engine) as session:
-            session.add(user)
-            session.commit()
+            try:
+                # Use merge to handle insert or update
+                session.merge(user)
+                session.commit()
+                logging.info("User added successfully.")
+            except Exception as e:
+                session.rollback()
+                raise e
 
     def add_new_repository_validation(
         self,
@@ -89,9 +100,10 @@ class SQLAlchemyConnector:
         event: str,
         info: str = "",
     ) -> None:
+        logging.info(f"Adding new repository validation ...")
         repository_validation = RepositoryValidation(
             repository=payload["repository"]["full_name"],
-            branch=reduce(operator.getitem, commit_ref_path[event], payload),
+            branch=reduce(operator.getitem, commit_ref_path[event], payload).replace("refs/heads/", ""),
             created_at=datetime.now(),
             organization_or_user=user_data["organization_or_user"],
             user_id=user_data["id"],
@@ -99,8 +111,14 @@ class SQLAlchemyConnector:
             info=info,
         )
         with Session(self.engine) as session:
-            session.add(repository_validation)
-            session.commit()
+            try:
+                session.merge(repository_validation)
+                session.commit()
+                logging.info("Repository validation added successfully.")
+            except Exception as e:
+                session.rollback()
+                logging.error(f"Error adding repository validation: {e}")
+                raise e
 
     def add_new_pytest_summary(
         self,
@@ -111,6 +129,7 @@ class SQLAlchemyConnector:
         branch: str,
         info: str,
     ) -> None:
+        logging.info(f"Adding new pytest summary ...")
         pytest_summary = WorkflowRun(
             id=workflow_run_id,
             organization_or_user=user_data["organization_or_user"],
@@ -120,12 +139,19 @@ class SQLAlchemyConnector:
             duration=artifact.get("duration", None),
             total_tests_collected=artifact.get("summary", {}).get("collected", None),
             total_passed_test=artifact.get("summary", {}).get("passed", None),
-            total_failed_test=artifact.get("summary", {}).get("failed", None),
+            total_failed_test=artifact.get("summary", {}).get("failed", 0),
+            total_error_test=artifact.get("summary", {}).get("error", 0),
             info=info,
         )
         with Session(self.engine) as session:
-            session.add(pytest_summary)
-            session.commit()
+            try:
+                session.merge(pytest_summary)
+                session.commit()
+                logging.info("Pytest summary added successfully.")
+            except Exception as e:
+                session.rollback()
+                logging.error(f"Error adding pytest summary: {e}")
+                raise e
 
     def add_new_pytest_detail(
         self,
@@ -134,19 +160,29 @@ class SQLAlchemyConnector:
         results: List[Dict[str, Any]],
         workflow_run_id: int,
     ) -> None:
+        logging.info(f"Adding new pytest details...")
         with Session(self.engine) as session:
-            for test in results:
-                pytest_detail = WorkflowRunDetail(
-                    repository=repository,
-                    branch=branch,
-                    workflow_run_id=workflow_run_id,
-                    file_path=test["file_path"],
-                    test_name=test["test_name"],
-                    script_name=test["script_name"],
-                    outcome=test["outcome"],
-                    setup=json.dumps(test["setup"]),
-                    call=json.dumps(test["call"]),
-                    teardown=json.dumps(test["teardown"]),
-                )
-                session.add(pytest_detail)
-            session.commit()
+            try:
+                for test in results:
+                    pytest_detail = WorkflowRunDetail(
+                        created_at=datetime.now(),
+                        organization_or_user=repository.split("/")[0],
+                        repository=repository,
+                        branch=branch,
+                        workflow_run_id=workflow_run_id,
+                        file_path=test["file_path"],
+                        test_name=test["test_name"],
+                        script_name=test["script_name"],
+                        challenge_name=test["challenge_name"],
+                        outcome=test["outcome"],
+                        setup=json.dumps(test["setup"]),
+                        call=json.dumps(test["call"]),
+                        teardown=json.dumps(test["teardown"]),
+                    )
+                    session.merge(pytest_detail)
+                session.commit()
+                logging.info("Pytest details added successfully.")
+            except Exception as e:
+                session.rollback()
+                logging.error(f"Error adding pytest details: {e}")
+                raise e

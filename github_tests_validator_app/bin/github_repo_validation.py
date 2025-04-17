@@ -5,12 +5,12 @@ import logging
 from github import ContentFile
 from github_tests_validator_app.config import (
     GH_PAT,
-    GH_TESTS_FOLDER_NAME,
-    GH_TESTS_REPO_NAME,
     GH_WORKFLOWS_FOLDER_NAME,
     commit_ref_path,
     default_message,
 )
+
+
 from github_tests_validator_app.lib.connectors.github_client import GitHubConnector
 from github_tests_validator_app.lib.connectors.sqlalchemy_client import SQLAlchemyConnector, User
 
@@ -25,10 +25,6 @@ def get_event(payload: Dict[str, Any]) -> str:
 def get_user_branch(payload: Dict[str, Any], trigger: Union[str, None] = None) -> Any:
     trigger = get_event(payload) if not trigger else trigger
     if not trigger:
-        # Log error
-        # FIXME
-        # Archive the payload
-        # FIXME
         logging.error("Couldn't find the user branch, maybe the trigger is not managed")
         return None
 
@@ -56,6 +52,8 @@ def get_user_github_connector(
         return None
 
     github_user_branch = get_user_branch(payload)
+    github_user_branch = "main"
+    logging.info(f"User branch : {github_user_branch}")
     if github_user_branch is None:
         return None
 
@@ -66,6 +64,7 @@ def compare_folder(
     user_github: GitHubConnector, solution_repo: GitHubConnector, folder: str
 ) -> Any:
 
+    logging.info(f"BRANCH NAME: {user_github.BRANCH_NAME}")
     user_contents = user_github.repo.get_contents(folder, ref=user_github.BRANCH_NAME)
 
     if isinstance(user_contents, ContentFile.ContentFile) and user_contents.type == "submodule":
@@ -75,6 +74,9 @@ def compare_folder(
 
     user_hash = user_github.get_hash(folder)
     solution_hash = solution_repo.get_hash(folder)
+    logging.info(f"user_hash = {user_hash}")
+    logging.info(f"solution_hash = {solution_hash}")
+    logging.info(f"is valid = {user_hash == solution_hash}")
     return user_hash == solution_hash
 
 
@@ -83,37 +85,23 @@ def validate_github_repo(
     sql_client: SQLAlchemyConnector,
     payload: Dict[str, Any],
     event: str,
-) -> None:
+) -> Any:
 
-    logging.info(f"Connecting to repo : {GH_TESTS_REPO_NAME}")
-
-    tests_github_connector = GitHubConnector(
-        user_data=user_github_connector.user_data,
-        repo_name=GH_TESTS_REPO_NAME
-        if GH_TESTS_REPO_NAME
-        else user_github_connector.repo.parent.full_name,
-        branch_name="main",
-        access_token=GH_PAT,
-    )
-
-    logging.info(f"Connecting to repo : {user_github_connector.repo.parent.full_name}")
-
+    if user_github_connector.repo.parent:
+        original_repo_name = user_github_connector.repo.parent.full_name
+        logging.info(f"Connecting to ORIGINAL repo : {original_repo_name}")
+    else:
+        original_repo_name = user_github_connector.repo.full_name
+        logging.info(f"Repository '{original_repo_name}' is not a fork, connecting to the same repository.")
+        
+    
     original_github_connector = GitHubConnector(
         user_data=user_github_connector.user_data,
-        repo_name=user_github_connector.repo.parent.full_name,
+        repo_name=original_repo_name,
         branch_name="main",
-        access_token=GH_PAT,
     )
-    if not tests_github_connector:
-        sql_client.add_new_repository_validation(
-            user_github_connector.user_data,
-            False,
-            payload,
-            event,
-            "[ERROR]: cannot get the tests github repository.",
-        )
-        logging.error("[ERROR]: cannot get the tests github repository.")
-        return
+
+    
     if not original_github_connector:
         sql_client.add_new_repository_validation(
             user_github_connector.user_data,
@@ -125,62 +113,26 @@ def validate_github_repo(
         logging.error("[ERROR]: cannot get the original github repository.")
         return
 
+
     workflows_havent_changed = compare_folder(
         user_github_connector, original_github_connector, GH_WORKFLOWS_FOLDER_NAME
     )
-    tests_havent_changed = compare_folder(
-        user_github_connector, tests_github_connector, GH_TESTS_FOLDER_NAME
-    )
 
-    # Add valid repo result on Google Sheet
+
+    workflows_conclusion = "success" if workflows_havent_changed else "failure"
+    workflows_message = default_message["valid_repository"]["workflows"][
+        str(workflows_havent_changed)
+    ]
+    logging.info(f"Workflows conclusion: {workflows_conclusion}")
+    
+
     sql_client.add_new_repository_validation(
         user_github_connector.user_data,
         workflows_havent_changed,
         payload,
         event,
-        default_message["valid_repository"]["workflows"][str(workflows_havent_changed)],
+        workflows_message,
     )
-    sql_client.add_new_repository_validation(
-        user_github_connector.user_data,
-        tests_havent_changed,
-        payload,
-        event,
-        default_message["valid_repository"]["tests"][str(tests_havent_changed)],
-    )
-
-    tests_conclusion = "success" if tests_havent_changed else "failure"
-    tests_message = default_message["valid_repository"]["tests"][str(tests_havent_changed)]
-    workflows_conclusion = "success" if workflows_havent_changed else "failure"
-    workflows_message = default_message["valid_repository"]["workflows"][
-        str(workflows_havent_changed)
-    ]
-
-    if event == "pull_request":
-        issue = user_github_connector.repo.get_issue(number=payload["pull_request"]["number"])
-        issue.create_comment(tests_message)
-        user_github_connector.repo.create_check_run(
-            name=tests_message,
-            head_sha=payload["pull_request"]["head"]["sha"],
-            status="completed",
-            conclusion=tests_conclusion,
-        )
-        user_github_connector.repo.create_check_run(
-            name=workflows_message,
-            head_sha=payload["pull_request"]["head"]["sha"],
-            status="completed",
-            conclusion=workflows_conclusion,
-        )
-        issue.create_comment(workflows_message)
-    elif event == "pusher":
-        user_github_connector.repo.create_check_run(
-            name=tests_message,
-            head_sha=payload["after"],
-            status="completed",
-            conclusion=tests_conclusion,
-        )
-        user_github_connector.repo.create_check_run(
-            name=workflows_message,
-            head_sha=payload["after"],
-            status="completed",
-            conclusion=workflows_conclusion,
-        )
+    
+    return workflows_havent_changed
+    

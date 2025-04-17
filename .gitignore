@@ -17,6 +17,9 @@ Icon
 # Environment variables
 .env
 
+# App rsa key
+*.pem
+
 # Terraform
 .terraform/
 terraform.tfstate

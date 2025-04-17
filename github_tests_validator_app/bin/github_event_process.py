@@ -15,7 +15,8 @@ from github_tests_validator_app.lib.utils import init_github_user_from_github_ev
 
 process = {
     "pull_request": validate_github_repo,
-    "pusher": validate_github_repo,
+    # "pusher": validate_github_repo,
+    "pusher": lambda *args: None,
     "workflow_job": send_user_pytest_summaries,
 }
 
@@ -46,16 +47,18 @@ def run(payload: Dict[str, Any]) -> None:
     event = handle_process(payload)
     if not event:
         return
-
+    # logging.info(f"Payload: {payload}")
     # Init User
     user_data = init_github_user_from_github_event(payload)
     if not isinstance(user_data, dict):
         # Logging
         return
-
+    logging.info("Connecting to the database...")
     sql_client = SQLAlchemyConnector()
-
-    sql_client.add_new_user(user_data)
+    try:
+        sql_client.add_new_user(user_data)
+    except Exception as e:
+        logging.error(f"[ERROR]: {e}")
 
     # Check valid repo
     user_github_connector = get_user_github_connector(user_data, payload)

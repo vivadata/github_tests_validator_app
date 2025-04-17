@@ -130,6 +130,7 @@ lint: test check-safety check-style
 docker:
 	@echo Building docker $(IMAGE):$(VERSION) ...
 	docker build \
+		--platform=linux/amd64 \
 		-t $(IMAGE):$(VERSION) . \
 		-f ./docker/Dockerfile
 
@@ -147,6 +148,28 @@ clean_build:
 .PHONY: clean
 clean: clean_build clean_docker
 
+
+include .env
+export
+
 .PHONY: deploy_gcp
-deploy_gcp:
-	./examples/cloud_run/deploy.sh
+deploy_gcp: docker
+	@echo Deploying to GCP ...
+	docker tag github_tests_validator_app:latest ${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/github_tests_validator_app:latest
+	docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/github_tests_validator_app:latest
+
+.PHONY: deploy_gcp_terraform
+deploy_gcp_terraform:
+	@echo Deploying to GCP with Terraform ...
+	@if ! gcloud artifacts repositories describe github-app-registry --location=${REGION} >/dev/null 2>&1; then \
+	  echo "Repository not found. Creating repository..."; \
+	  gcloud artifacts repositories create github-app-registry \
+	    --repository-format=docker \
+	    --location=${REGION} \
+	    --description="Repository for app validator Docker images"; \
+	else \
+	  echo "Repository already exists. Skipping creation."; \
+	fi
+	gcloud builds submit --config=cloudbuild.yaml .  --substitutions=_IMAGE_NAME=${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/${IMAGE}:${VERSION}
+	source iac/get_env_variables.sh
+	terraform -chdir=iac/ apply
