@@ -36,49 +36,34 @@ resource "google_service_account" "service_account" {
   display_name = "Service Account for Cloud Run that sends data to Google Drive"
 }
 
-resource "google_project_iam_binding" "service_account_user" {
+resource "google_project_iam_member" "service_account_user" {
   project = "${var.project_id}"
   role    = "roles/iam.serviceAccountUser"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
-resource "google_project_iam_binding" "run_admin" {
+resource "google_project_iam_member" "run_admin" {
   project = "${var.project_id}"
   role    = "roles/run.admin"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
-resource "google_project_iam_binding" "secret_accessor" {
+resource "google_project_iam_member" "secret_accessor" {
   project = "${var.project_id}"
   role    = "roles/secretmanager.secretAccessor"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
-resource "google_project_iam_binding" "bigquery_job_user" {
+resource "google_project_iam_member" "bigquery_job_user" {
   project = "${var.project_id}"
   role    = "roles/bigquery.jobUser"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
-resource "google_project_iam_binding" "bigquery_data_editor" {
+resource "google_project_iam_member" "bigquery_data_editor" {
   project = "${var.project_id}"
   role    = "roles/bigquery.dataEditor"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
 resource "google_artifact_registry_repository" "github_test_validator_app_registry" {
@@ -92,6 +77,11 @@ resource "google_cloud_run_service" "github_test_validator_app" {
     name     = "github-test-validator-app"
     location = "${var.region}"
     template {
+        metadata {
+          annotations = {
+            "run.googleapis.com/deploy-timestamp" = timestamp()
+          }
+        }
         spec {
             timeout_seconds = 300
             service_account_name = "github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"

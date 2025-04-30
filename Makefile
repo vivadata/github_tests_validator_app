@@ -171,5 +171,27 @@ deploy_gcp_terraform:
 	  echo "Repository already exists. Skipping creation."; \
 	fi
 	gcloud builds submit --config=cloudbuild.yaml .  --substitutions=_IMAGE_NAME=${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry/${IMAGE}:${VERSION}
+	terraform -chdir=iac/ workspace select default
 	source iac/get_env_variables.sh
 	terraform -chdir=iac/ apply
+
+.PHONY: deploy_gcp_terraform_dev
+deploy_gcp_terraform_dev:
+	@echo Deploying to GCP in dev version with Terraform ...
+	@if ! gcloud artifacts repositories describe github-app-registry-dev --location=${REGION} >/dev/null 2>&1; then \
+	  echo "Repository not found. Creating repository..."; \
+	  gcloud artifacts repositories create github-app-registry-dev \
+	    --repository-format=docker \
+	    --location=${REGION} \
+	    --description="Repository for app validator Docker images"; \
+	else \
+	  echo "Repository already exists. Skipping creation."; \
+	fi
+	gcloud builds submit --config=cloudbuild.yaml .  --substitutions=_IMAGE_NAME=${REGION}-docker.pkg.dev/${PROJECT_ID}/github-app-registry-dev/${IMAGE}:${VERSION}
+	terraform -chdir=iac/ workspace select dev
+	source iac/get_env_variables.sh
+	terraform -chdir=iac/ apply -target=google_cloud_run_service.github_test_validator_app \
+								-target=google_cloud_run_service_iam_policy.noauth \
+								-target=google_cloud_run_service.github_test_validator_app \
+								-target=google_secret_manager_secret.SQLALCHEMY_URI \
+								-target=google_secret_manager_secret_version.SQLALCHEMY_URI_version

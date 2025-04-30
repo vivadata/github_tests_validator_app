@@ -8,6 +8,12 @@ variable "region" {
   type        = string
 }
 
+variable "google_cloud_run_service_name" {
+  description = "The name of the Cloud Run service."
+  type        = string
+  default     = "github-test-validator-app"
+}
+
 variable "image" {
   description = "Name of the docker image"
   type        = string

@@ -39,6 +39,9 @@ GH_APP_KEY = cast(str, os.getenv("GH_APP_KEY", "").replace("\\n", "\n"))
 GH_PAT = cast(str, os.getenv("GH_PAT", "")).replace("\r\n", "").replace("\r", "")
 
 SQLALCHEMY_URI = cast(str, os.getenv("SQLALCHEMY_URI", "")).replace("\r\n", "").replace("\r", "").replace('"', '').replace("\n", "").replace("\\n", "").strip()
+if not SQLALCHEMY_URI:
+    SQLALCHEMY_URI = cast(str, os.getenv("SQLALCHEMY_URI_dev", "")).replace("\r\n", "").replace("\r", "").replace('"', '').replace("\n", "").replace("\\n", "").strip()
+    
 # SQLALCHEMY_URI="sqlite:///./test.db"
 
 GH_WORKFLOWS_FOLDER_NAME = ".github/workflows"

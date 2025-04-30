@@ -18,4 +18,6 @@
 #   value = var.SQLALCHEMY_URI
 # }
 
-
+output "image_version" {
+  value = var.image_version
+}
