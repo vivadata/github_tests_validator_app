@@ -219,8 +219,7 @@ class SQLAlchemyConnector:
         AND T.repository          = S.repository
         WHEN MATCHED THEN
         UPDATE SET
-            organization_or_user = S.organization_or_user,
-            repository           = S.repository,
+            created_at           = S.created_at,
             branch               = S.branch,
             workflow_run_id      = S.workflow_run_id,
             script_name          = S.script_name,
