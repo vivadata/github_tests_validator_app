@@ -1,3 +1,11 @@
+# Changing the cloud run service name based on the workspace
+locals {
+  dynamic_service_name = terraform.workspace == "default" ? var.google_cloud_run_service_name : "${var.google_cloud_run_service_name}-dev"
+  artifact_registry_name = terraform.workspace == "default" ? "github-app-registry" : "github-app-registry-dev"
+  sql_uri = terraform.workspace == "default" ? var.SQLALCHEMY_URI : "${var.SQLALCHEMY_URI}_dev"
+  secret_sql_uri_name = terraform.workspace == "default" ? "SQLALCHEMY_URI" : "SQLALCHEMY_URI_dev"
+}
+
 terraform {
   required_providers {
     google = {
@@ -20,49 +28,34 @@ resource "google_service_account" "service_account" {
   display_name = "Service Account for Cloud Run that sends data to Google Drive"
 }
 
-resource "google_project_iam_binding" "service_account_user" {
+resource "google_project_iam_member" "service_account_user" {
   project = var.project_id
   role    = "roles/iam.serviceAccountUser"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
-resource "google_project_iam_binding" "run_admin" {
+resource "google_project_iam_member" "run_admin" {
   project = var.project_id
   role    = "roles/run.admin"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
-resource "google_project_iam_binding" "secret_accessor" {
+resource "google_project_iam_member" "secret_accessor" {
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
-resource "google_project_iam_binding" "bigquery_job_user" {
+resource "google_project_iam_member" "bigquery_job_user" {
   project = var.project_id
   role    = "roles/bigquery.jobUser"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
-resource "google_project_iam_binding" "bigquery_data_editor" {
+resource "google_project_iam_member" "bigquery_data_editor" {
   project = var.project_id
   role    = "roles/bigquery.dataEditor"
-
-  members = [
-    "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com",
-  ]
+  member  = "serviceAccount:github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
 }
 
 
@@ -96,7 +89,7 @@ resource "google_secret_manager_secret_version" "GH_APP_KEY_version" {
 
 # SQLALCHEMY_URI
 resource "google_secret_manager_secret" "SQLALCHEMY_URI" {
-  secret_id = "SQLALCHEMY_URI"
+  secret_id = local.secret_sql_uri_name
   replication {
     auto {}
   }
@@ -104,7 +97,7 @@ resource "google_secret_manager_secret" "SQLALCHEMY_URI" {
 
 resource "google_secret_manager_secret_version" "SQLALCHEMY_URI_version" {
   secret      = google_secret_manager_secret.SQLALCHEMY_URI.id
-  secret_data = var.SQLALCHEMY_URI
+  secret_data = local.sql_uri
 }
 
 
@@ -124,15 +117,20 @@ resource "google_secret_manager_secret_version" "SQLALCHEMY_URI_version" {
 
 # Deploying the Cloud Run service
 resource "google_cloud_run_service" "github_test_validator_app" {
-  name     = "github-test-validator-app"
+  name     = local.dynamic_service_name
   location = var.region
 
   template {
+    metadata {
+      annotations = {
+        "run.googleapis.com/rollout-timestamp" = timestamp()
+      }
+    }
     spec {
       timeout_seconds      = 300
       service_account_name = "github-tests-validator-app@${var.project_id}.iam.gserviceaccount.com"
       containers {
-        image = "${var.region}-docker.pkg.dev/${var.project_id}/github-app-registry/${var.image}:${var.image_version}"
+        image = "${var.region}-docker.pkg.dev/${var.project_id}/${local.artifact_registry_name}/${var.image}:${var.image_version}"
         env {
           name = "GH_APP_ID"
           value_from {
@@ -152,10 +150,10 @@ resource "google_cloud_run_service" "github_test_validator_app" {
           }
         }
         env {
-          name = "SQLALCHEMY_URI"
+          name = local.secret_sql_uri_name
           value_from {
             secret_key_ref {
-              name = "SQLALCHEMY_URI"
+              name = local.secret_sql_uri_name
               key  = "latest"
             }
           }
@@ -182,6 +180,5 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
   location = google_cloud_run_service.github_test_validator_app.location
   project  = google_cloud_run_service.github_test_validator_app.project
   service  = google_cloud_run_service.github_test_validator_app.name
-
   policy_data = data.google_iam_policy.noauth.policy_data
 }

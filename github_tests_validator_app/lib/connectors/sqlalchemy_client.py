@@ -8,6 +8,7 @@ from functools import reduce
 
 from github_tests_validator_app.config import SQLALCHEMY_URI, commit_ref_path
 from sqlmodel import JSON, Column, Field, Relationship, Session, SQLModel, create_engine
+from google.cloud import bigquery
 
 
 class User(SQLModel, table=True):
@@ -153,19 +154,18 @@ class SQLAlchemyConnector:
                 logging.error(f"Error adding pytest summary: {e}")
                 raise e
 
+
     def add_new_pytest_detail(
-        self,
-        repository: str,
-        branch: str,
-        results: List[Dict[str, Any]],
-        workflow_run_id: int,
-    ) -> None:
-        logging.info(f"Adding new pytest details...")
-        with Session(self.engine) as session:
-            try:
-                for test in results:
-                    pytest_detail = WorkflowRunDetail(
-                        created_at=datetime.now(),
+            self,
+            repository: str,
+            branch: str,
+            results: List[Dict[str, Any]],
+            workflow_run_id: int,
+        ) -> None:
+        
+        summaries = [
+                    dict(
+                        created_at=datetime.now().isoformat(),
                         organization_or_user=repository.split("/")[0],
                         repository=repository,
                         branch=branch,
@@ -179,10 +179,84 @@ class SQLAlchemyConnector:
                         call=json.dumps(test["call"]),
                         teardown=json.dumps(test["teardown"]),
                     )
-                    session.merge(pytest_detail)
-                session.commit()
-                logging.info("Pytest details added successfully.")
-            except Exception as e:
-                session.rollback()
-                logging.error(f"Error adding pytest details: {e}")
-                raise e
+                    for test in results
+        ] 
+        
+        client        = bigquery.Client()
+        dataset       = SQLALCHEMY_URI.split("/")[-1]
+        main_table    = f"{dataset}.workflow_run_detail"
+        staging_table = f"{dataset}.staging_workflow_run_detail_{workflow_run_id}"
+
+        
+        create_staging_sql = f"""
+        CREATE TABLE `{staging_table}` 
+        LIKE `{main_table}`;
+        """
+        
+        try:
+            logging.info("Creating staging table...")
+            client.query(create_staging_sql).result()
+        except Exception as e:
+            logging.error(f"Error creating staging table: {e}")
+            raise e
+
+        try:
+            logging.info("Inserting data into staging table...")
+            errors = client.insert_rows_json(staging_table, summaries)
+            if errors:
+                raise RuntimeError(errors)
+        except Exception as e:
+            logging.error(f"Error inserting data into staging table: {e}")
+            raise e
+
+        # 2) MERGE depuis staging vers la table principale
+        merge_sql = f"""
+        MERGE `{main_table}` AS T
+        USING `{staging_table}` AS S
+        ON T.organization_or_user = S.organization_or_user
+        AND T.file_path           = S.file_path
+        AND T.test_name           = S.test_name
+        AND T.repository          = S.repository
+        WHEN MATCHED THEN
+        UPDATE SET
+            organization_or_user = S.organization_or_user,
+            repository           = S.repository,
+            branch               = S.branch,
+            workflow_run_id      = S.workflow_run_id,
+            script_name          = S.script_name,
+            challenge_name       = S.challenge_name,
+            outcome              = S.outcome,
+            setup                = S.setup,
+            call                 = S.call,
+            teardown             = S.teardown
+        WHEN NOT MATCHED THEN
+        INSERT (created_at, organization_or_user, repository, branch,
+                workflow_run_id, file_path, test_name, script_name,
+                challenge_name, outcome, setup, call, teardown)
+        VALUES (S.created_at, S.organization_or_user, S.repository, S.branch,
+                S.workflow_run_id, S.file_path, S.test_name, S.script_name,
+                S.challenge_name, S.outcome, S.setup, S.call, S.teardown)
+        """
+        
+        try:
+            logging.info("Merging data from staging to main table...")
+            client.query(merge_sql).result()
+        except Exception as e:
+            logging.error(f"Error merging data: {e}")
+            raise e
+
+        
+        cleanup_sql = f"""
+        DROP TABLE `{staging_table}`;
+        """
+        
+        try:
+            logging.info("Dropping staging table...")
+            job = client.query(cleanup_sql)
+            job.result()
+        except Exception as e:
+            logging.error(f"Error cleaning up staging table: {e}")
+            raise e
+
+        logging.info("Pytest details added successfully.")
+        
