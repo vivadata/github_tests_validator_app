@@ -192,6 +192,5 @@ deploy_gcp_terraform_dev:
 	source iac/get_env_variables.sh
 	terraform -chdir=iac/ apply -target=google_cloud_run_service.github_test_validator_app \
 								-target=google_cloud_run_service_iam_policy.noauth \
-								-target=google_cloud_run_service.github_test_validator_app \
 								-target=google_secret_manager_secret.SQLALCHEMY_URI \
 								-target=google_secret_manager_secret_version.SQLALCHEMY_URI_version

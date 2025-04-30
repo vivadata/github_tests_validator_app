@@ -60,7 +60,7 @@ def get_test_information(path: str) -> Tuple[str, str, str]:
     list_path_name = path.split("::")
     file_path = list_path_name[0]
     script_name = list_path_name[0].split("/")[-1]
-    test_name = list_path_name[1]
+    test_name = "::".join(list_path_name[1:])
     return file_path, script_name, test_name
 
 
