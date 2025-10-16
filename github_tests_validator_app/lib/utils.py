@@ -5,6 +5,7 @@ import hashlib
 import logging
 import random
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from github import ContentFile, GithubException
 from github_tests_validator_app.lib.connectors.sqlalchemy_client import User
@@ -35,7 +36,7 @@ def init_github_user_from_github_event(data: Dict[str, Any]) -> Optional[Dict[st
     login = data["sender"]["login"]
     id = data["sender"]["id"]
     url = data["sender"]["url"]
-    return dict(id=id, organization_or_user=login, url=url, created_at=datetime.now())
+    return dict(id=id, organization_or_user=login, url=url, created_at=datetime.now(ZoneInfo("Europe/Paris")))
 
 
 def strip_ansi_escape_codes(text: str) -> str:
