@@ -157,14 +157,20 @@ def send_user_pytest_summaries(
         user_github_connector.BRANCH_NAME,
         info="Result of user tests",
     )
-
-    # Parsing artifact / challenge results
-    pytest_summaries = parsing_pytest_summaries(artifact["tests"])
-    # logging.info(f'pytest summaries: {pytest_summaries}')
-    # Send new results to Big Query
-    sql_client.add_new_pytest_detail(
-        repository=user_github_connector.REPO_NAME,
-        branch=user_github_connector.BRANCH_NAME,
-        results=pytest_summaries,
-        workflow_run_id=payload["workflow_job"]["run_id"],
-    )
+    
+    if artifact["tests"]:
+        
+        # Parsing artifact / challenge results
+        pytest_summaries = parsing_pytest_summaries(artifact["tests"])
+        # logging.info(f'pytest summaries: {pytest_summaries}')
+        # Send new results to Big Query
+        logging.info("Adding new pytest details ...")
+        sql_client.add_new_pytest_detail(
+            repository=user_github_connector.REPO_NAME,
+            branch=user_github_connector.BRANCH_NAME,
+            results=pytest_summaries,
+            workflow_run_id=payload["workflow_job"]["run_id"],
+        )
+    
+    else:
+        logging.info("No tests found in artifact, probably no tests were run.")
