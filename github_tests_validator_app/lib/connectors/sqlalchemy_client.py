@@ -4,6 +4,7 @@ import json
 import operator
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from functools import reduce
 
 from github_tests_validator_app.config import SQLALCHEMY_URI, commit_ref_path
@@ -18,7 +19,7 @@ class User(SQLModel, table=True):
     id: int = Field(primary_key=True)
     organization_or_user: str
     url: str
-    created_at: datetime = Field(default=datetime.now())
+    created_at: datetime = Field(default=datetime.now(ZoneInfo("Europe/Paris")))
 
 
 class WorkflowRun(SQLModel, table=True):
@@ -30,7 +31,7 @@ class WorkflowRun(SQLModel, table=True):
 
     repository: str
     branch: str
-    created_at: datetime = Field(default=datetime.now())
+    created_at: datetime = Field(default=datetime.now(ZoneInfo("Europe/Paris")))
     total_tests_collected: int
     total_passed_test: int
     total_failed_test: int
@@ -45,7 +46,7 @@ class WorkflowRunDetail(SQLModel, table=True):
     __tablename__ = "workflow_run_detail"
     __table_args__ = {"extend_existing": True}
 
-    created_at: datetime = Field(default=datetime.now())
+    created_at: datetime = Field(default=datetime.now(ZoneInfo("Europe/Paris")))
     organization_or_user: str = Field(primary_key=True)
     file_path: str = Field(primary_key=True)
     test_name: str = Field(primary_key=True)
@@ -66,8 +67,8 @@ class RepositoryValidation(SQLModel, table=True):
     __table_args__ = {"extend_existing": True}
 
     repository: str = Field(primary_key=True)
-    branch: str = Field(primary_key=True)
-    created_at: datetime = Field(default=datetime.now())
+    branch: str
+    created_at: datetime = Field(default=datetime.now(ZoneInfo("Europe/Paris")))
     organization_or_user: str
     is_valid: bool
     info: str = Field(primary_key=True)
@@ -105,7 +106,7 @@ class SQLAlchemyConnector:
         repository_validation = RepositoryValidation(
             repository=payload["repository"]["full_name"],
             branch=reduce(operator.getitem, commit_ref_path[event], payload).replace("refs/heads/", ""),
-            created_at=datetime.now(),
+            created_at=datetime.now(ZoneInfo("Europe/Paris")),
             organization_or_user=user_data["organization_or_user"],
             user_id=user_data["id"],
             is_valid=result,
@@ -165,7 +166,7 @@ class SQLAlchemyConnector:
         
         summaries = [
                     dict(
-                        created_at=datetime.now().isoformat(),
+                        created_at=datetime.now(ZoneInfo("Europe/Paris")).isoformat(),
                         organization_or_user=repository.split("/")[0],
                         repository=repository,
                         branch=branch,

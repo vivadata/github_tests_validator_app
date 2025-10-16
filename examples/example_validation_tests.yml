@@ -3,16 +3,27 @@ name: Validation Tests
 on:
   push:
     branches: [ main ]
+    tags:
+      - run-all-tests
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+
+    timeout-minutes: 5
+
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Choose authentication token
         id: choose_token
@@ -65,36 +76,111 @@ jobs:
             echo "No differences found in test files."
             rm -rf ./reference_repo
           fi
+      
+      - name: Decide whether to run all tests
+        id: run_all
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/tags/run-all-tests" ]]; then
+            echo "RUN_ALL=true" >> $GITHUB_OUTPUT
+            echo "All tests will be run."
+          else
+            echo "RUN_ALL=false" >> $GITHUB_OUTPUT
+            echo "Only tests in modified directories will be run."
+          fi
 
-      - name: Set up Python
+      - name: Select challenges to test
+        id: select_tests
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [[ "${{ steps.run_all.outputs.RUN_ALL }}" == "true" ]]; then
+            find . -type d -iname "test*" -exec dirname {} \; | sort -u > test_to_run.txt
+          else
+            if [[ -z "$BEFORE" || -z "$SHA" ]]; then
+              echo "Missing commit range, running all tests."
+              find . -type d -iname "test*" -exec dirname {} \; | sort -u > test_to_run.txt
+            else
+              CHANGED_FILES=$(git diff --name-only "$BEFORE" "$SHA")
+              echo "Changed files:"
+              echo "$CHANGED_FILES"
+              # For each changed file, if it is inside a challenge directory, add the challenge directory (parent of src/ or tests/) to the list
+              DIRS=$(echo "$CHANGED_FILES" | awk -F/ '/curriculum\// {print $1"/"$2"/"$3"/"$4"/"$5}' | sort -u)
+              if [[ -z "$DIRS" ]]; then
+                # No relevant challenge directories, do not run any tests
+                : > test_to_run.txt
+              else
+                echo "$DIRS" > test_to_run.txt
+              fi
+            fi
+          fi
+
+          if [[ -s test_to_run.txt ]]; then
+            echo "HAS_DIRS=true" >> $GITHUB_OUTPUT
+            echo "Selected challenge directories:"
+            cat test_to_run.txt
+          else
+            echo "HAS_DIRS=false" >> $GITHUB_OUTPUT
+            echo "No relevant challenge directories found."
+          fi
+
+
+      - name: 🐍 Set up Python
+        if: steps.select_tests.outputs.HAS_DIRS == 'true'
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      
+      - name: 📦 Cache pip packages
+        if: steps.select_tests.outputs.HAS_DIRS == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-      - name: Upgrade pip
+
+      - name: 🚀 Upgrade pip
+        if: steps.select_tests.outputs.HAS_DIRS == 'true'
         run: python -m pip install --upgrade pip
 
-      - name: Install dependencies from requirements.txt
+      - name: 📦 Install dependencies from requirements.txt
+        if: steps.select_tests.outputs.HAS_DIRS == 'true'
         run: pip install -r requirements.txt
 
-      - name: Run tests in multiple directories
+      - name: 🧪 Run tests in multiple directories
+        if: steps.select_tests.outputs.HAS_DIRS == 'true'
         run: |
           EXITCODE=0
           COUNTER=0
-          for dir in $(find . -type d -iname "test*"); do
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+
+            echo "=============================="
             echo "Running tests in $dir"
-            cd "$(dirname "$dir")" && pytest -s -vv --json-report --json-report-file=$(git rev-parse --show-toplevel)'/results_'$COUNTER'.json' || EXITCODE=1
+            echo "=============================="
+
+            cd "$dir" && pytest -s -vv --json-report --json-report-file=$(git rev-parse --show-toplevel)'/results_'$COUNTER'.json' || EXITCODE=1
             cd - >/dev/null
             COUNTER=$((COUNTER + 1))
-          done
+          done < test_to_run.txt
           exit $EXITCODE
 
-      - name: Aggregating test results
+      - name: 📊 Aggregating test results
         if: always() && env.TESTS_MODIFIED == 'false'
         run: |
-          jq -s -f agg.jq results*.json > results.json
+          set +e
+          shopt -s nullglob
+          files=(results*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            # No results files, run jq with empty array to get base structure
+            jq -s -f agg.jq /dev/null  > results.json
+          else
+            jq -s -f agg.jq results*.json > results.json
+          fi
 
-      - name: Archive results
+      - name: 🗄️ Archive results
         if: always()
         uses: actions/upload-artifact@v4
         with:
